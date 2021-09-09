@@ -7,6 +7,7 @@ I have created a metin2 AI that helps farming. The AI will automatically pick up
 `python 3.9.x`, `pip` and `tesseract`
 
 You can dawnload tesseract from here `https://github.com/UB-Mannheim/tesseract/wiki`
+
 -remember where you installed it because you have to give path to `tesseract.exe` inside code
 
 # How to use:
