@@ -13,9 +13,9 @@ You can dawnload tesseract from here `https://github.com/UB-Mannheim/tesseract/w
 
 -First open the game in `800x600` resolution and `not fullscreen`. Otherwise the AI will detect and click the wrong place in the screen.
 
--This bot is able to farm `6 clients in the same time`. After you opened your all clients and place them like in this layout:
+-This bot is able to farm `up to 6 clients in the same time`, you can farm with as many as you want. After you opened your all clients and place them like in this layout:
 
-<img src="/images/layout.jpg" width="800">
+<img src="/images/Layout.jpg" width="800">
 
 -You have to place them at the ore and attack it once, the AI will do the rest after you start it.
 
