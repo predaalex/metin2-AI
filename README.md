@@ -24,7 +24,7 @@ You can dawnload tesseract from here `https://github.com/UB-Mannheim/tesseract/w
 
 - If you want to stop it, you have to open the windows that opens from python and press 'Q'
 
-#Check list
+# Check list
 
 - [x] auto attack the ore
 - [x] pick ores from the ground
