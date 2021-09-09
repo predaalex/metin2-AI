@@ -27,6 +27,6 @@ You can dawnload tesseract from here `https://github.com/UB-Mannheim/tesseract/w
 
 - [x] auto attack the ore
 - [x] pick ores from the ground
-- [ ] found the ores on minimap
+- [ ] finding the ores on minimap
 - [ ] changes chanel, moves the clients to ore and start farming it
  
