@@ -28,6 +28,7 @@ counterReusit5 = 0
 counterReusit6 = 0
 
 while True:
+
     # cap3
     cap3 = ImageGrab.grab(bbox=(1200, 540, 1500, 590))
     cap_arr3 = np.array(cap3)
@@ -72,6 +73,7 @@ while True:
     cap_arrResized6 = cv2.resize(cap_arr6, (600, 100))
 
     chat6 = pytesseract.image_to_string(cap_arrResized6)
+    print(chat6)
     # verific si execut comenzile necesare
     if 'Punctele tale de exploatare au crescut' in chat6 and time.time() - time6 > 5:
         time6 = time.time()
