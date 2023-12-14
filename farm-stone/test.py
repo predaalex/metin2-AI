@@ -10,18 +10,15 @@ import pydirectinput
 threshold = 0.8
 x_click_offset, y_click_offset = 40, 40
 helper_points = False
+skill_timer = 7 * 60
 
 # Set the window title you want to capture
 window_title = "Zenaris"
 
 # Find the window by its title
 window = gw.getWindowsWithTitle(window_title)
-template = cv.imread("resources/template.png", cv.IMREAD_GRAYSCALE)
-template_stone_check = cv.imread("resources/template_stone_check.png", cv.IMREAD_GRAYSCALE)
-
-
-# template = cv.resize(template, (0, 0), fx=0.5, fy=0.5)
-# cv.imshow("template", template)
+template = cv.imread("resources/template2.png", cv.IMREAD_GRAYSCALE)
+template_stone_check = cv.imread("resources/template_stone_check2.png", cv.IMREAD_GRAYSCALE)
 
 
 def get_center(frame):
@@ -49,7 +46,7 @@ def get_image(window):
 
 
 def get_stone_position_by_distance(frame, x_center, y_center):
-    global x_click_offset
+    global x_click_offset, y_click_offset
     frame = frame[100:, :]
     y_center -= 100
     result = cv.matchTemplate(frame, template, cv.TM_CCOEFF_NORMED)
@@ -59,12 +56,22 @@ def get_stone_position_by_distance(frame, x_center, y_center):
     distances = {}
 
     for x_match, y_match in zip(*loc[::-1]):
-        if x_match < x_center:  # left side
+        if x_match < window.width / 3:  # 1/3 of screen ( left )
             color = (0, 0, 0)
-            x_click_offset = 55
+            x_click_offset = 60
+        elif x_match < window.width * 2 / 3:  # 2/3 of screen ( middle )
+            color = (125, 125, 125)
+            x_click_offset = 50
         else:
-            color = (255, 255, 255)  # right side
+            color = (255, 255, 255)  # 3/3 of screen ( right )
             x_click_offset = 40
+
+        if y_match < window.height / 3:  # (top)
+            y_click_offset = 40
+        elif y_match < window.height * 2 / 3:  # (middle)
+            y_click_offset = 65
+        else:
+            y_click_offset = 90  # (bottom)
 
         x_match += x_click_offset
         y_match += y_click_offset
@@ -100,19 +107,13 @@ def check_selected_metin(frame):
         result = cv.matchTemplate(stone_hp_area, template_stone_check, cv.TM_CCOEFF_NORMED)
         return np.any(result > 0.9)
     except:
-        print("deschide window metin")
+        print("Open game window")
         return False
 
 
 def print_circles(closest_x, closest_y):
     color = (0, 0, 0)
-    # if closest_x < x_center:  # left side
-    #     x_click_offset = 50
-    # else:
-    #     color = (255, 255, 255)  # right side
-    #     x_click_offset = 40
-    # closest_x += x_click_offset
-    # closest_y += y_click_offset
+
     try:
         if helper_points:
             cv.circle(img=frame, center=(closest_x, closest_y),
@@ -128,12 +129,11 @@ if len(window) == 0:
     print(f"Window '{window_title}' not found.")
 else:
     window = window[0]  # Assuming there's only one window with the given title
-
+    start = time.time()
     while True:
 
         # Get the window's position and size
         frame = get_image(window)
-        time.sleep(0.1)
         # Get the center of window
         x_center, y_center = get_center(frame)
 
@@ -158,9 +158,10 @@ else:
                     frame = get_image(window)
                     select_metin(closest_x, closest_y)
                     time.sleep(0.1)
-                    print("nu i ok")
+                    print("Did NOT selected the metin")
             except:
-                print("sa o fut pe ma-ta")
+                print("Could NOT select any metin stones")
+                pydirectinput.press('q')
                 continue
 
             # left-click the validated stone
@@ -168,23 +169,41 @@ else:
 
             i = 0
             while check_selected_metin(get_image(window)):
-                print("dudu suge putulica", i)
+                print(f"Stone hit for {i}s")
                 i += 1
                 time.sleep(1)
 
+            print("Stone destroyed")
             pydirectinput.press('z')
 
-            print("dudu o supt o pe toata")
+            # After expiration time, spells are casted again
+            if time.time() - start > skill_timer:
+                start = time.time()
+                # unmount horse
+                pydirectinput.keyDown("ctrl")
+                pydirectinput.press('g')
+                time.sleep(0.1)
+                pydirectinput.keyUp("ctrl")
+
+                # cast spells
+                pydirectinput.press('3')
+                time.sleep(2.5)
+                pydirectinput.press('4')
+                time.sleep(2.5)
+
+                # mount horse
+                pydirectinput.keyDown("ctrl")
+                pydirectinput.press('g')
+                time.sleep(0.1)
+                pydirectinput.keyUp("ctrl")
+
         else:
             print("No stones in range")
+            pydirectinput.press('q')
 
         # Display the captured frame
-        if helper_points:
-            cv.imshow("Window Capture", frame)
-
-        # Exit the loop when 'q' key is pressed
-        if cv.waitKey(1) & 0xFF == ord('q'):
-            break
+        # if helper_points:
+        #     cv.imshow("Window Capture", frame)
 
 # Close all OpenCV windows
 cv.destroyAllWindows()
