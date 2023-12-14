@@ -167,11 +167,21 @@ else:
             # left-click the validated stone
             pydirectinput.leftClick()
 
+            # the stone was not destroyed under 30 seconds,
+            # so it changes camera position and begins the loop again
+            break_loop = False
             i = 0
             while check_selected_metin(get_image(window)):
                 print(f"Stone hit for {i}s")
                 i += 1
                 time.sleep(1)
+                if i > 30:
+                    pydirectinput.press('esc')
+                    pydirectinput.press('q')
+                    break_loop = True
+            if break_loop:
+                continue
+
 
             print("Stone destroyed")
             pydirectinput.press('z')
