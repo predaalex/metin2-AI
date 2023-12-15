@@ -11,9 +11,9 @@ helper_points = False
 chat_sell = True
 threshold = 0.8
 x_click_offset, y_click_offset = 40, 40
-skill_timer = 15 * 60
+skill_timer = 20 * 60
 clear_mobs_timer = 600
-reset_after = 60
+reset_after = 45
 
 # Set the window title you want to capture
 window_title = "Zenaris"
@@ -50,7 +50,7 @@ def get_image(window):
 
 def get_stone_position_by_distance(frame, x_center, y_center):
     global x_click_offset, y_click_offset
-    frame = frame[100:, :]
+    frame = frame[100:, :-100]
     y_center -= 100
     result = cv.matchTemplate(frame, template, cv.TM_CCOEFF_NORMED)
 
@@ -132,7 +132,9 @@ if len(window) == 0:
     print(f"Window '{window_title}' not found.")
 else:
     window = window[0]  # Assuming there's only one window with the given title
-    start = time.time()
+    start_spell_timer = time.time()
+    start_mob_clean_timer = time.time()
+
     while True:
 
         # Get the window's position and size
@@ -179,28 +181,38 @@ else:
                 i += 1
                 time.sleep(1)
                 if i > reset_after:
+                    pydirectinput.press('z')
                     pydirectinput.press('esc')
-                    pydirectinput.press('q', times=10)
+                    pydirectinput.press('q', presses=10)
                     break_loop = True
             if break_loop:
                 continue
 
             print("Stone destroyed")
+            print("timer mobi", time.time() - start_mob_clean_timer)
+            print("timer spell", time.time() - start_spell_timer)
             pydirectinput.press('z')
 
             # After stone was destroyed, write last message in chat
             if chat_sell:
+                time.sleep(0.1)
                 pydirectinput.press('enter')
+                time.sleep(0.1)
                 pydirectinput.press('up')
+                time.sleep(0.1)
                 pydirectinput.press('enter')
+                time.sleep(0.1)
+                pydirectinput.press('enter')
+                time.sleep(0.1)
 
-            if time.time() - start > skill_timer:  # After expiration time, spells are casted again
-                start = time.time()
+            if time.time() - start_spell_timer > skill_timer:  # After expiration time, spells are casted again
+                print("casting spells")
                 # unmount horse
                 pydirectinput.keyDown("ctrl")
                 pydirectinput.press('g')
                 time.sleep(0.1)
                 pydirectinput.keyUp("ctrl")
+                time.sleep(0.1)
 
                 # cast spells
                 pydirectinput.press('3')
@@ -213,20 +225,21 @@ else:
                 pydirectinput.press('g')
                 time.sleep(0.1)
                 pydirectinput.keyUp("ctrl")
+                time.sleep(0.1)
 
-            if time.time() - start > clear_mobs_timer:  # once 300 seconds: cape then clear mobs for 10 second
+                start_spell_timer = time.time()
+
+            if time.time() - start_mob_clean_timer > clear_mobs_timer:  # once clear_mobs_timer seconds: cape then clear mobs for 10 second
+                print("clearing mobs")
                 pydirectinput.press('1')
                 pydirectinput.keyDown('space')
                 time.sleep(10)
                 pydirectinput.keyUp('space')
+                start_mob_clean_timer = time.time()
 
         else:
             print("No stones in range")
             pydirectinput.press('q')
-
-        # Display the captured frame
-        # if helper_points:
-        #     cv.imshow("Window Capture", frame)
 
 # Close all OpenCV windows
 cv.destroyAllWindows()
