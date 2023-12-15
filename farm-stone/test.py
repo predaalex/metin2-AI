@@ -10,15 +10,16 @@ import pydirectinput
 threshold = 0.8
 x_click_offset, y_click_offset = 40, 40
 helper_points = False
-skill_timer = 7 * 60
+skill_timer = 15 * 60
 
 # Set the window title you want to capture
 window_title = "Zenaris"
 
 # Find the window by its title
 window = gw.getWindowsWithTitle(window_title)
-template = cv.imread("resources/template2.png", cv.IMREAD_GRAYSCALE)
-template_stone_check = cv.imread("resources/template_stone_check2.png", cv.IMREAD_GRAYSCALE)
+template = cv.imread("resources/template.png", cv.IMREAD_GRAYSCALE)
+template_stone_check = cv.imread("resources/template_stone_check.png", cv.IMREAD_GRAYSCALE)
+
 
 
 def get_center(frame):
@@ -175,19 +176,17 @@ else:
                 print(f"Stone hit for {i}s")
                 i += 1
                 time.sleep(1)
-                if i > 30:
+                if i > 60:
                     pydirectinput.press('esc')
                     pydirectinput.press('q')
                     break_loop = True
             if break_loop:
                 continue
 
-
             print("Stone destroyed")
             pydirectinput.press('z')
 
-            # After expiration time, spells are casted again
-            if time.time() - start > skill_timer:
+            if time.time() - start > skill_timer:  # After expiration time, spells are casted again
                 start = time.time()
                 # unmount horse
                 pydirectinput.keyDown("ctrl")
@@ -206,6 +205,11 @@ else:
                 pydirectinput.press('g')
                 time.sleep(0.1)
                 pydirectinput.keyUp("ctrl")
+            elif time.time() - start > 300:  # once 300 seconds: cape then clear mobs for 10 second
+                pydirectinput.press('1')
+                pydirectinput.keyDown('space')
+                time.sleep(10)
+                pydirectinput.keyUp('space')
 
         else:
             print("No stones in range")
