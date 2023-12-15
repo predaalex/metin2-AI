@@ -1,11 +1,9 @@
 import time
-
 import cv2 as cv
 import numpy as np
 import pygetwindow as gw
-from PIL import ImageGrab, Image
-import pyautogui
 import pydirectinput
+from PIL import ImageGrab
 
 helper_points = False
 chat_sell = True
@@ -19,9 +17,9 @@ reset_after = 45
 window_title = "Zenaris"
 
 # Find the window by its title
-window = gw.getWindowsWithTitle(window_title)
-template = cv.imread("resources/template.png", cv.IMREAD_GRAYSCALE)
-template_stone_check = cv.imread("resources/template_stone_check.png", cv.IMREAD_GRAYSCALE)
+windows = gw.getWindowsWithTitle(window_title)
+template = cv.imread("resources/template2.png", cv.IMREAD_GRAYSCALE)
+template_stone_check = cv.imread("resources/template_stone_check2.png", cv.IMREAD_GRAYSCALE)
 
 
 def get_center(frame):
@@ -48,7 +46,7 @@ def get_image(window):
     return screenshot
 
 
-def get_stone_position_by_distance(frame, x_center, y_center):
+def get_stone_position_by_distance(window, frame, x_center, y_center):
     global x_click_offset, y_click_offset
     frame = frame[100:, :-100]
     y_center -= 100
@@ -97,13 +95,12 @@ def get_stone_position_by_distance(frame, x_center, y_center):
     return distances
 
 
-def select_metin(x, y):
-
+def select_metin(window, x, y):
     pydirectinput.moveTo(window.left + x, window.top + y)
     pydirectinput.rightClick()
 
 
-def check_selected_metin(frame):
+def check_selected_metin(frame, x_center):
     stone_hp_area = frame[:100, x_center - 190: x_center + 190]
 
     try:
@@ -114,7 +111,7 @@ def check_selected_metin(frame):
         return False
 
 
-def print_circles(closest_x, closest_y):
+def print_circles(frame, closest_x, closest_y, x_center, y_center):
     color = (0, 0, 0)
 
     try:
@@ -128,13 +125,9 @@ def print_circles(closest_x, closest_y):
         print(f"Open {window_title} window")
 
 
-if len(window) == 0:
-    print(f"Window '{window_title}' not found.")
-else:
-    window = window[0]  # Assuming there's only one window with the given title
+def game_automation(window):
     start_spell_timer = time.time()
     start_mob_clean_timer = time.time()
-
     while True:
 
         # Get the window's position and size
@@ -143,7 +136,7 @@ else:
         x_center, y_center = get_center(frame)
 
         # Get the closest stone
-        distances_sorted = get_stone_position_by_distance(frame, x_center, y_center)
+        distances_sorted = get_stone_position_by_distance(window, frame, x_center, y_center)
         iterator = iter(distances_sorted)
         closest_dist = next(iterator, None)
 
@@ -151,17 +144,17 @@ else:
             closest_x, closest_y = distances_sorted[closest_dist]
 
             # Right click on stone
-            select_metin(closest_x, closest_y)
+            select_metin(window, closest_x, closest_y)
             time.sleep(0.1)
 
             # check if the right metin was clicked
             try:
-                while not check_selected_metin(get_image(window)):
+                while not check_selected_metin(get_image(window), x_center):
                     time.sleep(0.3)
                     closest_dist = next(iterator, None)
                     closest_x, closest_y = distances_sorted[closest_dist]
                     frame = get_image(window)
-                    select_metin(closest_x, closest_y)
+                    select_metin(window, closest_x, closest_y)
                     time.sleep(0.1)
                     print("Did NOT selected the metin")
             except:
@@ -176,7 +169,7 @@ else:
             # so it changes camera position and begins the loop again
             break_loop = False
             i = 0
-            while check_selected_metin(get_image(window)):
+            while check_selected_metin(get_image(window), x_center):
                 print(f"Stone hit for {i}s")
                 i += 1
                 time.sleep(1)
@@ -231,15 +224,20 @@ else:
 
             if time.time() - start_mob_clean_timer > clear_mobs_timer:  # once clear_mobs_timer seconds: cape then clear mobs for 10 second
                 print("clearing mobs")
+
                 pydirectinput.press('1')
                 pydirectinput.keyDown('space')
                 time.sleep(10)
                 pydirectinput.keyUp('space')
+
                 start_mob_clean_timer = time.time()
 
         else:
             print("No stones in range")
             pydirectinput.press('q')
+
+
+game_automation(windows[0])
 
 # Close all OpenCV windows
 cv.destroyAllWindows()
