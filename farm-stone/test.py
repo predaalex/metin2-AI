@@ -6,7 +6,7 @@ import pydirectinput
 from PIL import ImageGrab
 
 helper_points = False
-chat_sell = True
+chat_sell = False
 threshold = 0.8
 x_click_offset, y_click_offset = 40, 40
 skill_timer = 20 * 60
@@ -137,23 +137,22 @@ def game_automation(window):
 
         # Get the closest stone
         distances_sorted = get_stone_position_by_distance(window, frame, x_center, y_center)
-        iterator = iter(distances_sorted)
-        closest_dist = next(iterator, None)
 
-        if closest_dist is not None:
-            closest_x, closest_y = distances_sorted[closest_dist]
-
+        if len(distances_sorted) != 0:
+            iterator = iter(distances_sorted)
+            # closest_dist = next(iterator, None)
+            # closest_x, closest_y = distances_sorted[closest_dist]
+            #
             # Right click on stone
-            select_metin(window, closest_x, closest_y)
-            time.sleep(0.1)
+            # select_metin(window, closest_x, closest_y)
+            # time.sleep(0.1)
 
             # check if the right metin was clicked
             try:
                 while not check_selected_metin(get_image(window), x_center):
-                    time.sleep(0.3)
-                    closest_dist = next(iterator, None)
+                    time.sleep(0.1)
+                    closest_dist = next(iterator)
                     closest_x, closest_y = distances_sorted[closest_dist]
-                    frame = get_image(window)
                     select_metin(window, closest_x, closest_y)
                     time.sleep(0.1)
                     print("Did NOT selected the metin")
@@ -178,6 +177,7 @@ def game_automation(window):
                     pydirectinput.press('esc')
                     pydirectinput.press('q', presses=10)
                     break_loop = True
+                    break
             if break_loop:
                 continue
 

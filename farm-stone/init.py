@@ -1,35 +1,42 @@
-import pyautogui
-import pydirectinput
-import pyautogui
-from PIL import ImageGrab
-import cv2 as cv
-import numpy as np
-import pyautogui
-from PIL import ImageGrab
+import multiprocessing
+import time
 
-# 1. Capture a specific area of the screen
-x_start, y_start, width, height = 100, 100, 300, 300  # Define your area coordinates and size
-screenshot = ImageGrab.grab(bbox=(x_start, y_start, x_start+width, y_start+height))
 
-# Convert screenshot to format suitable for OpenCV
-screen = np.array(screenshot)
-screen = cv.cvtColor(screen, cv.COLOR_BGR2RGB)
+def worker_function(event, worker_id):
+    while True:
+        print(f"Worker {worker_id} is waiting for the command from the master.")
+        event.wait()  # Wait for the master's command
+        print(f"Worker {worker_id} received the command from the master and is now executing.")
 
-# 2. Template Matching
-template = cv.imread('template_image.jpg')  # Load your template image
-template_gray = cv.cvtColor(template, cv.COLOR_BGR2GRAY)
-screen_gray = cv.cvtColor(screen, cv.COLOR_BGR2GRAY)
+        # Simulate some work in the worker
+        print(f"Worker {worker_id} is doing some work...")
+        time.sleep(2)
 
-result = cv.matchTemplate(screen_gray, template_gray, cv.TM_CCOEFF_NORMED)
-min_val, max_val, min_loc, max_loc = cv.minMaxLoc(result)
+        # Clear the event to wait for the next command
+        event.clear()
 
-# Checking if the match is found with sufficient confidence
-if max_val > 0.8:  # You can adjust the threshold
-    match_x, match_y = max_loc
-    match_x += x_start  # Adjusting to the full screen coordinates
-    match_y += y_start
 
-    # 3. Simulate a Mouse Click
-    pyautogui.click(match_x, match_y)
+if __name__ == "__main__":
+    event = multiprocessing.Event()
+    event.clear()  # Initially, the event is cleared
 
-# Note: This is a very basic example and might need adjustments based on your requirements.
+    num_workers = 3
+    workers = []
+
+    for i in range(num_workers):
+        worker = multiprocessing.Process(target=worker_function, args=(event, i))
+        workers.append(worker)
+        worker.start()
+
+    # Simulate the master thread sending a command to the workers
+    for _ in range(3):
+        print("Master is sending a command to the workers...")
+        event.set()  # Signal the workers to execute
+
+        # Simulate some work in the master
+        print("Master is doing some work...")
+        time.sleep(2)
+
+    # Wait for the workers to finish
+    for worker in workers:
+        worker.join()
