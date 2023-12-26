@@ -32,6 +32,8 @@ def execute_command(lock, window, message):
     select_window(window)
     if message['command'] == "pressQ":
         pydirectinput.press('q')
+    elif message['command'] == "pressY":
+        pydirectinput.press('y')
     elif message['command'] == 'drag_biolog_window_to_center':
         pydirectinput.moveTo(message['current_biolog_window_x'], message['current_biolog_window_y'], duration=0.1)
         pydirectinput.mouseDown(button='left')
@@ -122,7 +124,7 @@ def master(queue, lock, stop_signal, window_title):
 if __name__ == '__main__':
     command_queue = Queue()
     lock = Lock()
-    num_workers = 1
+    num_workers = 2
     stop_signal = Value('i', 0)
     window_title = "Zenaris"
     windows = gw.getWindowsWithTitle(window_title)

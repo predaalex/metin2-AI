@@ -47,15 +47,15 @@ def get_stone_position_by_distance(window, frame, x_center, y_center, template, 
             x_click_offset = 55
         elif x_match < window.width * 2 / 3:  # 2/3 of screen ( middle )
             color = (125, 125, 125)
-            x_click_offset = 45
+            x_click_offset = 40
         else:
             color = (255, 255, 255)  # 3/3 of screen ( right )
-            x_click_offset = 35
+            x_click_offset = 30
 
         if y_match < window.height / 3:  # (top)
-            y_click_offset = 40
+            y_click_offset = 45
         elif y_match < window.height * 2 / 3:  # (middle)
-            y_click_offset = 50
+            y_click_offset = 55
         else:
             y_click_offset = 60  # (bottom)
 
@@ -81,7 +81,7 @@ def get_stone_position_by_distance(window, frame, x_center, y_center, template, 
 
 
 def check_selected_metin(window, x_center, template_stone_check):
-    frame = get_image(window)
+    frame = apply_color_filter(get_image(window))
     stone_hp_area = frame[40:100, x_center - 190: x_center + 190]
     # cv.imshow("stone_hp_area", stone_hp_area)
     # cv.waitKey(1)
@@ -186,22 +186,29 @@ def worker(queue, lock, worker_id, stop_signal):
     skill_timer = 10 * 60
     clear_mobs_timer = 600
     reset_after = 90
-    biolog_timer = 10
-    make_biolog = True
+    biolog_timer = 10 * 60
+    make_biolog = False
     biolog_send_item_template = cv.imread("resources/biolog_send_item.png", cv.IMREAD_GRAYSCALE)
+    template = None
+    template_stone_check = None
     if worker_id == 0:
-        template = cv.imread("resources/template.png", cv.IMREAD_GRAYSCALE)
-        template_stone_check = cv.imread("resources/template_stone_check.png", cv.IMREAD_GRAYSCALE)
-        skill_timer = 20 * 60
-        clear_mobs_timer = 360
+        template = cv.imread("resources/template_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
+        template_stone_check = cv.imread("resources/template_stone_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
+        skill_timer = 10 * 60
+        clear_mobs_timer = 600
         reset_after = 40
+        biolog_timer = 5 * 60 + 1
         chat_spam_last_message = False
+        make_biolog = True
     else:
-        template = cv.imread("resources/template_forest2.png", cv.IMREAD_GRAYSCALE)
-        template_stone_check = cv.imread("resources/template_stone_red_forest2.png", cv.IMREAD_GRAYSCALE)
+        template = cv.imread("resources/template_beta_vant.png", cv.IMREAD_GRAYSCALE)
+        template_stone_check = cv.imread("resources/template_stone_beta_vant.png", cv.IMREAD_GRAYSCALE)
         skill_timer = 7 * 60
-        clear_mobs_timer = 360
+        clear_mobs_timer = 600
         reset_after = 50
+        biolog_timer = 5 * 60 + 1
+        chat_spam_last_message = False
+        make_biolog = True
 
     template_stone_check = apply_color_filter(template_stone_check)
     template = apply_color_filter(template)
@@ -216,7 +223,7 @@ def worker(queue, lock, worker_id, stop_signal):
         }
 
         # Get the window's position and size
-        frame = apply_color_filter(get_image(window))
+        frame = get_image(window)
         # Get the center of window
         x_center, y_center = get_center(frame)
 
@@ -233,8 +240,9 @@ def worker(queue, lock, worker_id, stop_signal):
             continue
 
         # Get the closest stone
-        distances_sorted = get_stone_position_by_distance(window, frame, x_center, y_center, template, threshold,
-                                                          helper_points)
+        distances_sorted = get_stone_position_by_distance(window, apply_color_filter(get_image(window)),
+                                                          x_center, y_center,
+                                                          template, threshold, helper_points)
 
         # if there are 0 stones detected, pressQ any reset loop
         if len(distances_sorted) == 0:
@@ -349,7 +357,7 @@ def worker(queue, lock, worker_id, stop_signal):
             message['command'] = 'pressY'
             lock.acquire()
             queue.put(message)
-            time.sleep(0.2)
+            time.sleep(0.5)
 
             # search send_item and press
             try:
@@ -375,9 +383,9 @@ def worker(queue, lock, worker_id, stop_signal):
 
             start_biolog_timer = time.time()
 
-            print(f"Worker {worker_id}: [timer mobi: {time.time() - start_mob_clean_timer:.1f} s]")
-            print(f"Worker {worker_id}: [timer skills: {time.time() - start_spell_timer:.1f} s]")
-            print(f"Worker {worker_id}: [timer biolog: {time.time() - start_biolog_timer:.1f} s]")
+        print(f"Worker {worker_id}: [timer mobi: {time.time() - start_mob_clean_timer:.1f} / {clear_mobs_timer} s]")
+        print(f"Worker {worker_id}: [timer skills: {time.time() - start_spell_timer:.1f} / {skill_timer} s]")
+        print(f"Worker {worker_id}: [timer biolog: {time.time() - start_biolog_timer:.1f} / {biolog_timer} s]")
 
 
 
@@ -401,7 +409,7 @@ def master(queue, lock, stop_signal, window_title):
 if __name__ == '__main__':
     command_queue = Queue()
     lock = Lock()
-    num_workers = 1
+    num_workers = 2
     stop_signal = Value('i', 0)
     window_title = "Zenaris"
     windows = gw.getWindowsWithTitle(window_title)
