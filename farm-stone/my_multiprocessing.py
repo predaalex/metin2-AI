@@ -79,6 +79,53 @@ def get_stone_position_by_distance(window, frame, x_center, y_center, template, 
 
     return distances
 
+def get_stones_in_range(window, frame, x_center, y_center, template, threshold, radius, helper_points):
+    frame = frame[100:-100, :]
+    y_center -= 100
+    result = cv.matchTemplate(frame, template, cv.TM_CCOEFF_NORMED)
+
+    loc = np.where(result >= threshold)
+
+    distances = {}
+
+    for x_match, y_match in zip(*loc[::-1]):
+        if x_match < window.width / 3:  # 1/3 of screen ( left )
+            color = (0, 0, 0)
+            x_click_offset = 55
+        elif x_match < window.width * 2 / 3:  # 2/3 of screen ( middle )
+            color = (125, 125, 125)
+            x_click_offset = 40
+        else:
+            color = (255, 255, 255)  # 3/3 of screen ( right )
+            x_click_offset = 30
+
+        if y_match < window.height / 3:  # (top)
+            y_click_offset = 45
+        elif y_match < window.height * 2 / 3:  # (middle)
+            y_click_offset = 55
+        else:
+            y_click_offset = 60  # (bottom)
+
+        x_match += x_click_offset
+        y_match += y_click_offset
+
+        distance = int(np.sqrt((x_center - x_match) ** 2 + (y_center - y_match) ** 2))
+        if distance > radius:
+            distances[distance] = (x_match, y_match + 100)
+
+        try:
+            if helper_points:
+                cv.circle(img=frame, center=(x_match, y_match),
+                          radius=10, color=color, thickness=2)
+
+                cv.circle(img=frame, center=(x_center, y_center),
+                          radius=10, color=color, thickness=2)
+        except:
+            print(f"Open {window_title} window")
+
+    # distances = dict(sorted(distances.items()))
+
+    return distances
 
 def check_selected_metin(window, x_center, template_stone_check):
     frame = apply_color_filter(get_image(window))
@@ -102,6 +149,8 @@ def execute_command(lock, window, message):
     select_window(window)
     if message['command'] == "pressQ":
         pydirectinput.press('q')
+    elif message['command'] == "press1":
+        pydirectinput.press('1')
     elif message['command'] == "pressEsc":
         pydirectinput.press('esc')
     elif message['command'] == 'select_stone':
@@ -132,7 +181,7 @@ def execute_command(lock, window, message):
         pydirectinput.press('g')
         time.sleep(0.1)
         pydirectinput.keyUp("ctrl")
-        time.sleep(0.1)
+        time.sleep(0.5)
 
         # cast spells
         pydirectinput.press('3')
@@ -145,7 +194,6 @@ def execute_command(lock, window, message):
         pydirectinput.press('g')
         time.sleep(0.1)
         pydirectinput.keyUp("ctrl")
-        time.sleep(0.1)
     elif message['command'] == 'clearing_mobs':
         pydirectinput.press('1')
         pydirectinput.keyDown('space')
@@ -183,23 +231,26 @@ def worker(queue, lock, worker_id, stop_signal):
     debug_worker = False
 
     threshold = 0.8
-    skill_timer = 10 * 60
+    skill_timer = 1 * 60
     clear_mobs_timer = 600
     reset_after = 90
     biolog_timer = 10 * 60
     make_biolog = False
+    clear_mobs = False
     biolog_send_item_template = cv.imread("resources/biolog_send_item.png", cv.IMREAD_GRAYSCALE)
     template = None
     template_stone_check = None
+    metin_counter = 0
     if worker_id == 0:
         template = cv.imread("resources/template_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
         template_stone_check = cv.imread("resources/template_stone_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
-        skill_timer = 10 * 60
-        clear_mobs_timer = 600
-        reset_after = 40
+        skill_timer = 50 * 60
+        clear_mobs_timer = 99999
+        reset_after = 10
         biolog_timer = 5 * 60 + 1
         chat_spam_last_message = False
-        make_biolog = True
+        make_biolog = False
+        clear_mobs = True
     else:
         template = cv.imread("resources/template_beta_vant.png", cv.IMREAD_GRAYSCALE)
         template_stone_check = cv.imread("resources/template_stone_beta_vant.png", cv.IMREAD_GRAYSCALE)
@@ -240,12 +291,12 @@ def worker(queue, lock, worker_id, stop_signal):
             continue
 
         # Get the closest stone
-        distances_sorted = get_stone_position_by_distance(window, apply_color_filter(get_image(window)),
+        stones_in_range = get_stone_position_by_distance(window, apply_color_filter(get_image(window)),
                                                           x_center, y_center,
                                                           template, threshold, helper_points)
 
-        # if there are 0 stones detected, pressQ any reset loop
-        if len(distances_sorted) == 0:
+        # if there are 0 stones detected, pressQ and reset loop
+        if len(stones_in_range) == 0:
             if debug_worker:
                 print(f"Worker {worker_id}: [No stones detected!]")
             message['command'] = 'pressQ'
@@ -257,8 +308,8 @@ def worker(queue, lock, worker_id, stop_signal):
 
         # Try to press all the stone in distances order and if couldn't pressQ any reset loop
         metin_selected = False
-        for distance in distances_sorted:
-            closest_x, closest_y = distances_sorted[distance]
+        for distance in stones_in_range:
+            closest_x, closest_y = stones_in_range[distance]
             message['command'] = 'select_stone'
             message['x_stone_pos'] = closest_x
             message['y_stone_pos'] = closest_y
@@ -285,20 +336,57 @@ def worker(queue, lock, worker_id, stop_signal):
         message['command'] = 'press_left_click'
         lock.acquire()
         queue.put(message)
-
-
-        time.sleep(0.5)
+        time.sleep(2)
 
         # the stone was not destroyed under reset_after seconds,
         # so it changes camera position and begins the loop again
         break_loop = False
-        i = 0
+        time_while_attacking_metin = 0
+        found_next_metin = False
         while check_selected_metin(window, x_center, template_stone_check):
-            if i % 10 == 0:
-                print(f"Worker {worker_id}: [Stone hit for {i}s]")
-            i += 1
+            if time_while_attacking_metin == 0 and clear_mobs:
+                # Call surrounding monsters
+                message['command'] = 'press1'
+                lock.acquire()
+                queue.put(message)
+                time.sleep(0.5)
+
+            # Check if next stone is if range
+            stones_in_range = get_stones_in_range(window, apply_color_filter(get_image(window)),
+                                                                  x_center, y_center,
+                                                                  template, threshold, 100, helper_points)
+            if len(stones_in_range) != 0:
+                found_next_metin = True
+            time_while_found = 0
+            while len(stones_in_range) == 0 and not found_next_metin:
+
+                # if there are 0 stones detected, pressQ
+                if debug_worker:
+                    print(f"Worker {worker_id}: [No stones detected!]")
+                message['command'] = 'pressQ'
+                lock.acquire()
+                queue.put(message)
+                time.sleep(0.5)
+                stones_in_range = get_stones_in_range(window, apply_color_filter(get_image(window)),
+                                                                  x_center, y_center,
+                                                                  template, threshold, 100, helper_points)
+                time_while_found += 0.5
+
+                if len(stones_in_range) != 0:
+                    found_next_metin = True
+                if time_while_found > reset_after:
+                    time.sleep(0.5)
+                    break
+
+
+            time_while_found /= 1
+            time_while_attacking_metin += time_while_found
+
+            if time_while_attacking_metin % 5 == 0:
+                print(f"Worker {worker_id}: [Stone hit for {time_while_attacking_metin}s]")
+            time_while_attacking_metin += 1
             time.sleep(1)
-            if i > reset_after:
+            if time_while_attacking_metin > reset_after:
                 if debug_worker:
                     print(f"Worker {worker_id}: [Restart because timer expired]")
                 message['command'] = 'reset'
@@ -306,24 +394,22 @@ def worker(queue, lock, worker_id, stop_signal):
                 queue.put(message)
 
                 break_loop = True
-                time.sleep(2)
+                time.sleep(0.5)
                 break
         if break_loop:
             continue
 
         print(f"Worker {worker_id}: [Stone destroyed]")
+        metin_counter += 1
 
 
-        # pydirectinput.press('z')
         message['command'] = 'pick_up'
         lock.acquire()
         queue.put(message)
 
-
-        break_loop = True
         time.sleep(0.5)
         # After stone was destroyed, write last message in chat
-        if chat_spam_last_message:
+        if chat_spam_last_message and metin_counter % 5 == 0:
             message['command'] = 'chat_spam_last_message'
             lock.acquire()
             queue.put(message)
@@ -383,9 +469,11 @@ def worker(queue, lock, worker_id, stop_signal):
 
             start_biolog_timer = time.time()
 
-        print(f"Worker {worker_id}: [timer mobi: {time.time() - start_mob_clean_timer:.1f} / {clear_mobs_timer} s]")
         print(f"Worker {worker_id}: [timer skills: {time.time() - start_spell_timer:.1f} / {skill_timer} s]")
-        print(f"Worker {worker_id}: [timer biolog: {time.time() - start_biolog_timer:.1f} / {biolog_timer} s]")
+        if clear_mobs:
+            print(f"Worker {worker_id}: [timer mobi: {time.time() - start_mob_clean_timer:.1f} / {clear_mobs_timer} s]")
+        if make_biolog:
+            print(f"Worker {worker_id}: [timer biolog: {time.time() - start_biolog_timer:.1f} / {biolog_timer} s]")
 
 
 
@@ -409,7 +497,7 @@ def master(queue, lock, stop_signal, window_title):
 if __name__ == '__main__':
     command_queue = Queue()
     lock = Lock()
-    num_workers = 2
+    num_workers = 1
     stop_signal = Value('i', 0)
     window_title = "Zenaris"
     windows = gw.getWindowsWithTitle(window_title)
