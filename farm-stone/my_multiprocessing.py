@@ -1,10 +1,12 @@
-from multiprocessing import Process, Queue, Value, Event, Lock
+import datetime
 import time
+from multiprocessing import Process, Queue, Value, Lock
+
 import cv2 as cv
 import numpy as np
+import pydirectinput
 import pygetwindow
 import pygetwindow as gw
-import pydirectinput
 from PIL import ImageGrab
 
 
@@ -72,12 +74,15 @@ def get_stone_position_by_distance(window, frame, x_center, y_center, template, 
 
                 cv.circle(img=frame, center=(x_center, y_center),
                           radius=10, color=color, thickness=2)
-        except:
-            print(f"Open {window_title} window")
+        except Exception as e:
+            
+            print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                  f"Open {window_title} window -> {e}")
 
     distances = dict(sorted(distances.items()))
 
     return distances
+
 
 def get_stones_in_range(window, frame, x_center, y_center, template, threshold, radius, helper_points):
     frame = frame[100:-100, :]
@@ -120,12 +125,15 @@ def get_stones_in_range(window, frame, x_center, y_center, template, threshold, 
 
                 cv.circle(img=frame, center=(x_center, y_center),
                           radius=10, color=color, thickness=2)
-        except:
-            print(f"Open {window_title} window")
+        except Exception as e:
+            
+            print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                  f"Open {window_title} window -> {e}")
 
     # distances = dict(sorted(distances.items()))
 
     return distances
+
 
 def check_selected_metin(window, x_center, template_stone_check):
     frame = apply_color_filter(get_image(window))
@@ -136,8 +144,10 @@ def check_selected_metin(window, x_center, template_stone_check):
         result = cv.matchTemplate(stone_hp_area, template_stone_check, cv.TM_CCOEFF_NORMED)
         return np.any(result > 0.9)
 
-    except:
-        print("Open game window")
+    except Exception as e:
+        
+        print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+              f"Open game window -> {e}")
         return False
 
 
@@ -145,7 +155,7 @@ def select_window(window):
     pydirectinput.leftClick((window.left + window.right) // 2, window.top + 15)
 
 
-def execute_command(lock, window, message):
+def execute_command(window, message):
     select_window(window)
     if message['command'] == "pressQ":
         pydirectinput.press('q')
@@ -162,8 +172,8 @@ def execute_command(lock, window, message):
     elif message['command'] == 'reset':
         pydirectinput.press('z')
         time.sleep(0.1)
-        pydirectinput.press('esc')
-        time.sleep(0.1)
+        # pydirectinput.press('esc')
+        # time.sleep(0.1)
         pydirectinput.press('q', presses=10)
         time.sleep(0.1)
     elif message['command'] == 'chat_spam_last_message':
@@ -208,7 +218,9 @@ def execute_command(lock, window, message):
         time.sleep(0.2)
         pydirectinput.press('y')
     else:
-        print("Command does NOT exists!")
+        
+        print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+              f"Command does NOT exists!")
 
 
 def apply_color_filter(img):
@@ -226,40 +238,39 @@ def search_biolog_send_item(window, frame, biolog_send_item_template):
 
 
 def worker(queue, lock, worker_id, stop_signal):
-    helper_points = False
-    chat_spam_last_message = False
-    debug_worker = False
-
     threshold = 0.8
-    skill_timer = 1 * 60
-    clear_mobs_timer = 600
-    reset_after = 90
-    biolog_timer = 10 * 60
-    make_biolog = False
-    clear_mobs = False
     biolog_send_item_template = cv.imread("resources/biolog_send_item.png", cv.IMREAD_GRAYSCALE)
-    template = None
-    template_stone_check = None
     metin_counter = 0
     if worker_id == 0:
         template = cv.imread("resources/template_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
         template_stone_check = cv.imread("resources/template_stone_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
+
         skill_timer = 50 * 60
         clear_mobs_timer = 99999
         reset_after = 10
         biolog_timer = 5 * 60 + 1
+
+        helper_points = False
+        debug_worker = False
+
         chat_spam_last_message = False
         make_biolog = False
-        clear_mobs = True
+        clear_mobs = False
     else:
-        template = cv.imread("resources/template_beta_vant.png", cv.IMREAD_GRAYSCALE)
-        template_stone_check = cv.imread("resources/template_stone_beta_vant.png", cv.IMREAD_GRAYSCALE)
-        skill_timer = 7 * 60
-        clear_mobs_timer = 600
-        reset_after = 50
+        template = cv.imread("resources/template_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
+        template_stone_check = cv.imread("resources/template_stone_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
+
+        skill_timer = 50 * 60
+        clear_mobs_timer = 99999
+        reset_after = 10
         biolog_timer = 5 * 60 + 1
+
+        helper_points = False
+        debug_worker = False
+
         chat_spam_last_message = False
-        make_biolog = True
+        make_biolog = False
+        clear_mobs = False
 
     template_stone_check = apply_color_filter(template_stone_check)
     template = apply_color_filter(template)
@@ -281,7 +292,9 @@ def worker(queue, lock, worker_id, stop_signal):
         # Check if any previous stones are selected
         if check_selected_metin(window, x_center, template_stone_check):
             if debug_worker:
-                print(f"Worker {worker_id}: [Unselect stone]")
+                
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                      f"Worker {worker_id}: [Unselect stone]")
 
             message['command'] = 'pressEsc'
             lock.acquire()
@@ -292,13 +305,15 @@ def worker(queue, lock, worker_id, stop_signal):
 
         # Get the closest stone
         stones_in_range = get_stone_position_by_distance(window, apply_color_filter(get_image(window)),
-                                                          x_center, y_center,
-                                                          template, threshold, helper_points)
+                                                         x_center, y_center,
+                                                         template, threshold, helper_points)
 
         # if there are 0 stones detected, pressQ and reset loop
         if len(stones_in_range) == 0:
             if debug_worker:
-                print(f"Worker {worker_id}: [No stones detected!]")
+                
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                      f"Worker {worker_id}: [No stones detected!]")
             message['command'] = 'pressQ'
             lock.acquire()
             queue.put(message)
@@ -321,11 +336,15 @@ def worker(queue, lock, worker_id, stop_signal):
                 metin_selected = True
                 break
             elif debug_worker:
-                print(f"Worker {worker_id}: [Did NOT selected the metin]")
+                
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                      f"Worker {worker_id}: [Did NOT selected the metin]")
 
         if not metin_selected:
             if debug_worker:
-                print(f"Worker {worker_id}: [Could NOT select any metin stones]")
+                
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                      f"Worker {worker_id}: [Could NOT select any metin stones]")
             message['command'] = 'pressQ'
             lock.acquire()
             queue.put(message)
@@ -353,8 +372,8 @@ def worker(queue, lock, worker_id, stop_signal):
 
             # Check if next stone is if range
             stones_in_range = get_stones_in_range(window, apply_color_filter(get_image(window)),
-                                                                  x_center, y_center,
-                                                                  template, threshold, 100, helper_points)
+                                                  x_center, y_center,
+                                                  template, threshold, 100, helper_points)
             if len(stones_in_range) != 0:
                 found_next_metin = True
             time_while_found = 0
@@ -362,14 +381,16 @@ def worker(queue, lock, worker_id, stop_signal):
 
                 # if there are 0 stones detected, pressQ
                 if debug_worker:
-                    print(f"Worker {worker_id}: [No stones detected!]")
+                    
+                    print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                          f"Worker {worker_id}: [No stones detected!]")
                 message['command'] = 'pressQ'
                 lock.acquire()
                 queue.put(message)
                 time.sleep(0.5)
                 stones_in_range = get_stones_in_range(window, apply_color_filter(get_image(window)),
-                                                                  x_center, y_center,
-                                                                  template, threshold, 100, helper_points)
+                                                      x_center, y_center,
+                                                      template, threshold, 100, helper_points)
                 time_while_found += 0.5
 
                 if len(stones_in_range) != 0:
@@ -378,17 +399,20 @@ def worker(queue, lock, worker_id, stop_signal):
                     time.sleep(0.5)
                     break
 
-
             time_while_found /= 1
             time_while_attacking_metin += time_while_found
 
             if time_while_attacking_metin % 5 == 0:
-                print(f"Worker {worker_id}: [Stone hit for {time_while_attacking_metin}s]")
+                
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                      f"Worker {worker_id}: [Stone hit for {time_while_attacking_metin}s]")
             time_while_attacking_metin += 1
             time.sleep(1)
             if time_while_attacking_metin > reset_after:
                 if debug_worker:
-                    print(f"Worker {worker_id}: [Restart because timer expired]")
+                    
+                    print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                          f"Worker {worker_id}: [Restart because timer expired]")
                 message['command'] = 'reset'
                 lock.acquire()
                 queue.put(message)
@@ -399,9 +423,10 @@ def worker(queue, lock, worker_id, stop_signal):
         if break_loop:
             continue
 
-        print(f"Worker {worker_id}: [Stone destroyed]")
+        
+        print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+              f"Worker {worker_id}: [Stone destroyed]")
         metin_counter += 1
-
 
         message['command'] = 'pick_up'
         lock.acquire()
@@ -417,7 +442,9 @@ def worker(queue, lock, worker_id, stop_signal):
 
         if time.time() - start_spell_timer > skill_timer:  # After expiration time, spells are casted again
             if debug_worker:
-                print(f"Worker {worker_id}: [casting spells]")
+                
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                      f"Worker {worker_id}: [casting spells]")
             message['command'] = 'casting_spells'
             lock.acquire()
             queue.put(message)
@@ -425,19 +452,25 @@ def worker(queue, lock, worker_id, stop_signal):
 
             start_spell_timer = time.time()
 
-        if time.time() - start_mob_clean_timer > clear_mobs_timer:  # once clear_mobs_timer seconds: cape then clear mobs for 10 second
+        # once clear_mobs_timer seconds: cape then clear mobs for 10 second
+        if time.time() - start_mob_clean_timer > clear_mobs_timer:  
             if debug_worker:
-                print(f"Worker {worker_id}: [clearing mob]")
+                
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                      f"Worker {worker_id}: [clearing mob]")
             message['command'] = 'clearing_mobs'
             lock.acquire()
             queue.put(message)
             time.sleep(0.5)
 
             start_mob_clean_timer = time.time()
-
-        if make_biolog and time.time() - start_biolog_timer > biolog_timer:  # once biolog_timer open biolog window and press send_item
+            
+        # once biolog_timer open biolog window and press send_item
+        if make_biolog and time.time() - start_biolog_timer > biolog_timer:  
             if debug_worker:
-                print(f"Worker {worker_id}: [solve biolog]")
+                
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                      f"Worker {worker_id}: [solve biolog]")
 
             # open biolog window
             message['command'] = 'pressY'
@@ -455,8 +488,10 @@ def worker(queue, lock, worker_id, stop_signal):
                 lock.acquire()
                 queue.put(message)
                 time.sleep(0.2)
-            except:
-                print("Worker {worker_id}: [ERROR!: solve biolog]")
+            except Exception as e:
+                
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                      f"Worker {worker_id}: [ERROR!: solve biolog] -> {e}")
                 message['command'] = 'pressY'
                 lock.acquire()
                 queue.put(message)
@@ -469,28 +504,38 @@ def worker(queue, lock, worker_id, stop_signal):
 
             start_biolog_timer = time.time()
 
-        print(f"Worker {worker_id}: [timer skills: {time.time() - start_spell_timer:.1f} / {skill_timer} s]")
+        print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+              f"Worker {worker_id}: [timer skills: {time.time() - start_spell_timer:.1f} / {skill_timer} s]")
         if clear_mobs:
-            print(f"Worker {worker_id}: [timer mobi: {time.time() - start_mob_clean_timer:.1f} / {clear_mobs_timer} s]")
+            
+            print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                  f"Worker {worker_id}: [timer mobi: {time.time() - start_mob_clean_timer:.1f} / {clear_mobs_timer} s]")
         if make_biolog:
-            print(f"Worker {worker_id}: [timer biolog: {time.time() - start_biolog_timer:.1f} / {biolog_timer} s]")
-
+            
+            print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                  f"Worker {worker_id}: [timer biolog: {time.time() - start_biolog_timer:.1f} / {biolog_timer} s]")
 
 
 def master(queue, lock, stop_signal, window_title):
     try:
-        print("Master process started")
+        
+        print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+              f"Master process started")
         windows = pygetwindow.getWindowsWithTitle(window_title)
         while True:
             if not queue.empty():
                 message = queue.get()
-                print(f"Executing command from worker {message['worker_id']}: {message['command']}")
-                execute_command(lock, window=windows[message['worker_id']], message=message)
+                
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                      f"Executing command from worker {message['worker_id']}: {message['command']}")
+                execute_command(window=windows[message['worker_id']], message=message)
                 lock.release()
             else:
                 time.sleep(0.1)  # Sleep to prevent high CPU usage
     except KeyboardInterrupt:
-        print("Stopping all processes.")
+        
+        print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+              f"Stopping all processes.")
         stop_signal.value = 1
 
 
@@ -504,7 +549,9 @@ if __name__ == '__main__':
     num_windows = len(windows)
 
     if num_windows < num_workers:
-        print("Not enought game windows open")
+        
+        print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+              f"Not enough game windows open")
         raise SystemExit
 
     master_process = Process(target=master, args=(command_queue, lock, stop_signal, window_title))
