@@ -163,11 +163,11 @@ def execute_command(window, message):
         pydirectinput.press('1')
     elif message['command'] == "pressEsc":
         pydirectinput.press('esc')
-    elif message['command'] == 'select_stone':
-        pydirectinput.moveTo(window.left + message['x_stone_pos'], window.top + message['y_stone_pos'])
+    elif message['command'] == 'press_right_click':
+        pydirectinput.moveTo(window.left + message['x_click_pos'], window.top + message['y_click_pos'])
         pydirectinput.rightClick()
     elif message['command'] == 'press_left_click':
-        pydirectinput.moveTo(window.left + message['x_stone_pos'], window.top + message['y_stone_pos'])
+        pydirectinput.moveTo(window.left + message['x_click_pos'], window.top + message['y_click_pos'])
         pydirectinput.leftClick()
     elif message['command'] == 'reset':
         pydirectinput.press('z')
@@ -237,9 +237,28 @@ def search_biolog_send_item(window, frame, biolog_send_item_template):
     return loc[::-1][0][0], loc[::-1][1][0]
 
 
+def check_if_dead(window, revive_button):
+    frame = get_image(window)
+
+    # cv.imshow("frame", frame)
+    # cv.imshow("revive_button", revive_button)
+    # cv.waitKey(0)
+    # cv.destroyAllWindows()
+
+    result = cv.matchTemplate(frame, revive_button, cv.TM_CCOEFF_NORMED)
+    
+    if np.any(result > 0.5):
+        loc = np.where(result >= 0.5)
+
+        return True, loc[::-1][0][0], loc[::-1][1][0]
+    else:
+        return False, None, None
+
+
 def worker(queue, lock, worker_id, stop_signal):
     threshold = 0.8
     biolog_send_item_template = cv.imread("resources/biolog_send_item.png", cv.IMREAD_GRAYSCALE)
+    revive_button = cv.imread("resources/revive_button.png", cv.IMREAD_GRAYSCALE)
     metin_counter = 0
     if worker_id == 0:
         template = cv.imread("resources/template_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
@@ -325,9 +344,9 @@ def worker(queue, lock, worker_id, stop_signal):
         metin_selected = False
         for distance in stones_in_range:
             closest_x, closest_y = stones_in_range[distance]
-            message['command'] = 'select_stone'
-            message['x_stone_pos'] = closest_x
-            message['y_stone_pos'] = closest_y
+            message['command'] = 'press_right_click'  # press right click to select stone
+            message['x_click_pos'] = closest_x
+            message['y_click_pos'] = closest_y
             lock.acquire()
             queue.put(message)
 
@@ -409,8 +428,21 @@ def worker(queue, lock, worker_id, stop_signal):
             time_while_attacking_metin += 1
             time.sleep(1)
             if time_while_attacking_metin > reset_after:
+
+                is_dead, revive_button_x, revive_button_y = check_if_dead(window, revive_button)
+                # Check if dead then revive
+                if is_dead:
+                    time.sleep(10)
+                    message['command'] = 'press_left_click'
+                    message['x_click_pos'] = revive_button_x + 15
+                    message['y_click_pos'] = revive_button_y + 5
+                    lock.acquire()
+                    queue.put(message)
+                    time.sleep(1)
+                    break_loop = True
+                    break
+
                 if debug_worker:
-                    
                     print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                           f"Worker {worker_id}: [Restart because timer expired]")
                 message['command'] = 'reset'
@@ -423,7 +455,6 @@ def worker(queue, lock, worker_id, stop_signal):
         if break_loop:
             continue
 
-        
         print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
               f"Worker {worker_id}: [Stone destroyed]")
         metin_counter += 1
