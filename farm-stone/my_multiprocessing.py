@@ -174,6 +174,9 @@ def execute_command(window, message):
         pydirectinput.leftClick()
         pydirectinput.press('q', presses=10)
     elif message['command'] == 'reset':
+        # TODO: de modificat resetul in a se teleporta din noua in zona specifica
+        #  aceasta abordare nu functioneaza pentru ca caracterul, chiar daca este blocat,
+        #  doar misca camera in speranta de a apasa alta piatra metin pentru a incerca sa se deblocheze.
         pydirectinput.press('z')
         time.sleep(0.1)
         # pydirectinput.press('esc')
@@ -300,10 +303,21 @@ def worker(queue, lock, worker_id, stop_signal):
             'worker_id': worker_id,
         }
 
+        is_dead, revive_button_x, revive_button_y = check_if_dead(window, revive_button)
+        # Check if dead then revive
+        if is_dead:
+            message['command'] = 'press_left_click'
+            message['x_click_pos'] = revive_button_x + 15
+            message['y_click_pos'] = revive_button_y + 5
+            lock.acquire()
+            queue.put(message)
+            time.sleep(1)
+            continue
+
         # Get the window's position and size
-        frame = get_image(window)
+        # frame = get_image(window)
         # Get the center of window
-        x_center, y_center = get_center(frame)
+        x_center, y_center = window.centerx, window.centery
 
         # Check if any previous stones are selected
         if check_selected_metin(window, x_center, template_stone_check):
@@ -371,7 +385,7 @@ def worker(queue, lock, worker_id, stop_signal):
         message['command'] = 'select_stone'
         lock.acquire()
         queue.put(message)
-        time.sleep(2)
+        time.sleep(2.5)
 
         # the stone was not destroyed under reset_after seconds,
         # so it changes camera position and begins the loop again
