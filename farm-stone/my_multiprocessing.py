@@ -169,6 +169,10 @@ def execute_command(window, message):
     elif message['command'] == 'press_left_click':
         pydirectinput.moveTo(window.left + message['x_click_pos'], window.top + message['y_click_pos'])
         pydirectinput.leftClick()
+    elif message['command'] == 'select_stone':
+        pydirectinput.moveTo(window.left + message['x_click_pos'], window.top + message['y_click_pos'])
+        pydirectinput.leftClick()
+        pydirectinput.press('q', presses=10)
     elif message['command'] == 'reset':
         pydirectinput.press('z')
         time.sleep(0.1)
@@ -218,7 +222,6 @@ def execute_command(window, message):
         time.sleep(0.2)
         pydirectinput.press('y')
     else:
-        
         print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
               f"Command does NOT exists!")
 
@@ -240,16 +243,10 @@ def search_biolog_send_item(window, frame, biolog_send_item_template):
 def check_if_dead(window, revive_button):
     frame = get_image(window)
 
-    # cv.imshow("frame", frame)
-    # cv.imshow("revive_button", revive_button)
-    # cv.waitKey(0)
-    # cv.destroyAllWindows()
-
     result = cv.matchTemplate(frame, revive_button, cv.TM_CCOEFF_NORMED)
     
     if np.any(result > 0.5):
         loc = np.where(result >= 0.5)
-
         return True, loc[::-1][0][0], loc[::-1][1][0]
     else:
         return False, None, None
@@ -261,12 +258,12 @@ def worker(queue, lock, worker_id, stop_signal):
     revive_button = cv.imread("resources/revive_button.png", cv.IMREAD_GRAYSCALE)
     metin_counter = 0
     if worker_id == 0:
-        template = cv.imread("resources/template_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
-        template_stone_check = cv.imread("resources/template_stone_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
+        template = cv.imread("resources/template_hwangyeon.png", cv.IMREAD_GRAYSCALE)
+        template_stone_check = cv.imread("resources/template_stone_hwangyeon.png", cv.IMREAD_GRAYSCALE)
 
         skill_timer = 50 * 60
         clear_mobs_timer = 99999
-        reset_after = 10
+        reset_after = 15
         biolog_timer = 5 * 60 + 1
 
         helper_points = False
@@ -276,19 +273,19 @@ def worker(queue, lock, worker_id, stop_signal):
         make_biolog = False
         clear_mobs = False
     else:
-        template = cv.imread("resources/template_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
-        template_stone_check = cv.imread("resources/template_stone_enchanted_forest.png", cv.IMREAD_GRAYSCALE)
+        template = cv.imread("resources/template_hwangyeon.png", cv.IMREAD_GRAYSCALE)
+        template_stone_check = cv.imread("resources/template_stone_hwangyeon.png", cv.IMREAD_GRAYSCALE)
 
-        skill_timer = 50 * 60
+        skill_timer = 20 * 60
         clear_mobs_timer = 99999
-        reset_after = 10
-        biolog_timer = 5 * 60 + 1
+        reset_after = 35
+        biolog_timer = 10 * 60 + 1
 
         helper_points = False
         debug_worker = False
 
         chat_spam_last_message = False
-        make_biolog = False
+        make_biolog = True
         clear_mobs = False
 
     template_stone_check = apply_color_filter(template_stone_check)
@@ -371,7 +368,7 @@ def worker(queue, lock, worker_id, stop_signal):
             continue
 
         # left-click the validated stone
-        message['command'] = 'press_left_click'
+        message['command'] = 'select_stone'
         lock.acquire()
         queue.put(message)
         time.sleep(2)
