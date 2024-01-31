@@ -318,7 +318,7 @@ def worker():
                       f"[No stones detected!]")
             message['command'] = 'pressQ'
             execute_command(window, message)
-            time.sleep(1)
+            time.sleep(0.3)
             if debug_worker:
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[pressQ executed]")
@@ -333,7 +333,7 @@ def worker():
             message['y_click_pos'] = closest_y
             execute_command(window, message)
 
-            time.sleep(0.5)
+            time.sleep(0.25)
             if check_selected_metin(window, x_center, template_stone_check):
                 metin_selected = True
                 break
@@ -349,7 +349,7 @@ def worker():
                       f"[Could NOT select any metin stones]")
             message['command'] = 'pressQ'
             execute_command(window, message)
-            time.sleep(1)
+            time.sleep(0.5)
             if debug_worker:
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[pressQ executed]")
@@ -358,7 +358,7 @@ def worker():
         # left-click the validated stone
         message['command'] = 'select_stone'
         execute_command(window, message)
-        time.sleep(0.5)
+        time.sleep(0.25)
 
         # the stone was not destroyed under reset_after seconds,
         # so it changes camera position and begins the loop again
@@ -387,7 +387,7 @@ def worker():
                           f"[No future stones detected!]")
                 message['command'] = 'pressQ'
                 execute_command(window, message)
-                time.sleep(0.5)
+                time.sleep(0.4)
                 if debug_worker:
                     print(
                         f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
