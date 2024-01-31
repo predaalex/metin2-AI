@@ -159,7 +159,7 @@ def execute_command(window, message):
     select_window(window)
     pydirectinput.press('z')
     if message['command'] == "pressQ":
-        pydirectinput.press('q')
+        pydirectinput.press('q', presses=2)
     elif message['command'] == "press1":
         pydirectinput.press('1')
     elif message['command'] == "pressEsc":
@@ -271,7 +271,7 @@ def worker(queue, lock, worker_id, stop_signal):
         biolog_timer = 5 * 60 + 1
 
         helper_points = False
-        debug_worker = False
+        debug_worker = True
 
         chat_spam_last_message = False
         make_biolog = False
@@ -331,14 +331,15 @@ def worker(queue, lock, worker_id, stop_signal):
         # if there are 0 stones detected, pressQ and reset loop
         if len(stones_in_range) == 0:
             if debug_worker:
-                
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"Worker {worker_id}: [No stones detected!]")
             message['command'] = 'pressQ'
             lock.acquire()
             queue.put(message)
-
-            time.sleep(0.5)
+            time.sleep(1)
+            if debug_worker:
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                      f"Worker {worker_id}: [pressQ executed]")
             continue
 
         # Try to press all the stone in distances order and if couldn't pressQ any reset loop
@@ -368,7 +369,10 @@ def worker(queue, lock, worker_id, stop_signal):
             message['command'] = 'pressQ'
             lock.acquire()
             queue.put(message)
-            time.sleep(0.5)
+            time.sleep(1)
+            if debug_worker:
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                      f"Worker {worker_id}: [pressQ executed]")
             continue
 
         # left-click the validated stone
@@ -403,11 +407,15 @@ def worker(queue, lock, worker_id, stop_signal):
                 if debug_worker:
                     
                     print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
-                          f"Worker {worker_id}: [No stones detected!]")
+                          f"Worker {worker_id}: [No future stones detected!]")
                 message['command'] = 'pressQ'
                 lock.acquire()
                 queue.put(message)
-                time.sleep(0.5)
+                time.sleep(1)
+                if debug_worker:
+                    print(
+                        f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                        f"Worker {worker_id}: [pressQ executed]")
                 stones_in_range = get_stones_in_range(window, apply_color_filter(get_image(window)),
                                                       x_center, y_center,
                                                       template, threshold, 100, helper_points)
@@ -529,11 +537,6 @@ def worker(queue, lock, worker_id, stop_signal):
                 queue.put(message)
                 time.sleep(0.2)
 
-            message['command'] = 'pressQ'
-            queue.put(message)
-            lock.acquire()
-            time.sleep(0.2)
-
             start_biolog_timer = time.time()
 
         print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
@@ -558,10 +561,14 @@ def master(queue, lock, stop_signal, window_title):
             if not queue.empty():
                 message = queue.get()
                 
-                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}"
+                      f":{datetime.datetime.now().microsecond:02}]:"
                       f"Executing command from worker {message['worker_id']}: {message['command']}")
                 execute_command(window=windows[message['worker_id']], message=message)
                 lock.release()
+                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}"
+                      f":{datetime.datetime.now().microsecond:02}]:"
+                      f"Executed command from worker {message['worker_id']}: {message['command']}")
             else:
                 time.sleep(0.1)  # Sleep to prevent high CPU usage
     except KeyboardInterrupt:
