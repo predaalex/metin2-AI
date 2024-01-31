@@ -4,20 +4,19 @@ import keyboard
 import pydirectinput
 
 
-def simulate_key_press():
-    toggle = True
-    while True:
-        # pydirectinput.keyDown('space')
-        if keyboard.is_pressed('q'):
-            break
-        if keyboard.is_pressed('e'):
-            toggle = -toggle
-        if toggle:
-            pydirectinput.press('z')
-        # pydirectinput.press('1')
-        time.sleep(0.1)
-    # pydirectinput.keyUp('space')
+# def simulate_key_press():
+#     pydirectinput.press('z')
+#     time.sleep(0.3)
+#
+#
+# if __name__ == "__main__":
+#     while True:
+#         simulate_key_press()
 
+time.sleep(1)
+pydirectinput.keyDown('space')
 
-if __name__ == "__main__":
-    simulate_key_press()
+while True:
+    pydirectinput.press('1')
+    time.sleep(2)
+

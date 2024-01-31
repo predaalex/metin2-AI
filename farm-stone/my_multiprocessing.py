@@ -157,6 +157,7 @@ def select_window(window):
 
 def execute_command(window, message):
     select_window(window)
+    pydirectinput.press('z')
     if message['command'] == "pressQ":
         pydirectinput.press('q')
     elif message['command'] == "press1":
@@ -172,7 +173,7 @@ def execute_command(window, message):
     elif message['command'] == 'select_stone':
         pydirectinput.moveTo(window.left + message['x_click_pos'], window.top + message['y_click_pos'])
         pydirectinput.leftClick()
-        pydirectinput.press('q', presses=10)
+        pydirectinput.press('q', presses=6)
     elif message['command'] == 'reset':
         # TODO: de modificat resetul in a se teleporta din noua in zona specifica
         #  aceasta abordare nu functioneaza pentru ca caracterul, chiar daca este blocat,
@@ -459,9 +460,9 @@ def worker(queue, lock, worker_id, stop_signal):
               f"Worker {worker_id}: [Stone destroyed]")
         metin_counter += 1
 
-        message['command'] = 'pick_up'
-        lock.acquire()
-        queue.put(message)
+        # message['command'] = 'pick_up'
+        # lock.acquire()
+        # queue.put(message)
 
         time.sleep(0.5)
         # After stone was destroyed, write last message in chat
