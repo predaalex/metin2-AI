@@ -77,7 +77,7 @@ def get_stone_position_by_distance(window, frame, x_center, y_center, template, 
         except Exception as e:
             
             print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
-                  f"Open {window_title} window -> {e}")
+                  f"Open window -> {e}")
 
     distances = dict(sorted(distances.items()))
 
@@ -128,7 +128,7 @@ def get_stones_in_range(window, frame, x_center, y_center, template, threshold, 
         except Exception as e:
             
             print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
-                  f"Open {window_title} window -> {e}")
+                  f"Open window -> {e}")
 
     # distances = dict(sorted(distances.items()))
 
@@ -159,14 +159,16 @@ def execute_command(window, message):
     select_window(window)
     pydirectinput.press('z')
     if message['command'] == "pressQ":
-        pydirectinput.press('q', presses=2)
+        pydirectinput.press('q', presses=3)
     elif message['command'] == "press1":
         pydirectinput.press('1')
     elif message['command'] == "pressEsc":
         pydirectinput.press('esc')
+        time.sleep(0.5)
     elif message['command'] == 'press_right_click':
         pydirectinput.moveTo(window.left + message['x_click_pos'], window.top + message['y_click_pos'])
         pydirectinput.rightClick()
+        time.sleep(0.2)
     elif message['command'] == 'press_left_click':
         pydirectinput.moveTo(window.left + message['x_click_pos'], window.top + message['y_click_pos'])
         pydirectinput.leftClick()
@@ -174,16 +176,13 @@ def execute_command(window, message):
         pydirectinput.moveTo(window.left + message['x_click_pos'], window.top + message['y_click_pos'])
         pydirectinput.leftClick()
         pydirectinput.press('q', presses=6)
+        time.sleep(0.5)
     elif message['command'] == 'reset':
         # TODO: de modificat resetul in a se teleporta din noua in zona specifica
         #  aceasta abordare nu functioneaza pentru ca caracterul, chiar daca este blocat,
         #  doar misca camera in speranta de a apasa alta piatra metin pentru a incerca sa se deblocheze.
-        pydirectinput.press('z')
-        time.sleep(0.1)
-        # pydirectinput.press('esc')
-        # time.sleep(0.1)
         pydirectinput.press('q', presses=10)
-        time.sleep(0.1)
+        time.sleep(0.25 * 10)
     elif message['command'] == 'chat_spam_last_message':
         time.sleep(0.1)
         pydirectinput.press('enter')
@@ -193,6 +192,8 @@ def execute_command(window, message):
         pydirectinput.press('enter')
         time.sleep(0.1)
         pydirectinput.press('enter')
+        time.sleep(0.2)
+
     elif message['command'] == 'casting_spells':
         # unmount horse
         pydirectinput.keyDown("ctrl")
@@ -212,19 +213,25 @@ def execute_command(window, message):
         pydirectinput.press('g')
         time.sleep(0.1)
         pydirectinput.keyUp("ctrl")
+        time.sleep(0.2)
+
     elif message['command'] == 'clearing_mobs':
         pydirectinput.press('1')
         pydirectinput.keyDown('space')
         time.sleep(7)
         pydirectinput.keyUp('space')
-    elif message['command'] == 'pick_up':
-        pydirectinput.press('z')
+        time.sleep(0.1)
+
     elif message['command'] == 'pressY':
         pydirectinput.press('y')
+        time.sleep(0.1)
+
     elif message['command'] == 'press_send_item':
         pydirectinput.leftClick(message['biolog_send_item_x'], message['biolog_send_item_y'])
         time.sleep(0.2)
         pydirectinput.press('y')
+        time.sleep(0.1)
+
     else:
         print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
               f"Command does NOT exists!")
@@ -266,11 +273,11 @@ def worker():
 
     skill_timer = 50 * 60
     clear_mobs_timer = 99999
-    reset_after = 15
-    biolog_timer = 5 * 60 + 1
+    reset_after = 10
+    biolog_timer = 30 * 60 + 1
 
     helper_points = False
-    debug_worker = True
+    debug_worker = False
 
     chat_spam_last_message = False
     make_biolog = False
@@ -302,8 +309,6 @@ def worker():
 
             message['command'] = 'pressEsc'
             execute_command(window, message)
-
-            time.sleep(0.5)
             continue
 
         # Get the closest stone
@@ -318,7 +323,7 @@ def worker():
                       f"[No stones detected!]")
             message['command'] = 'pressQ'
             execute_command(window, message)
-            time.sleep(0.3)
+
             if debug_worker:
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[pressQ executed]")
@@ -333,23 +338,19 @@ def worker():
             message['y_click_pos'] = closest_y
             execute_command(window, message)
 
-            time.sleep(0.25)
             if check_selected_metin(window, x_center, template_stone_check):
                 metin_selected = True
                 break
             elif debug_worker:
-                
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[Did NOT selected the metin]")
 
         if not metin_selected:
             if debug_worker:
-                
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[Could NOT select any metin stones]")
             message['command'] = 'pressQ'
             execute_command(window, message)
-            time.sleep(0.5)
             if debug_worker:
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[pressQ executed]")
@@ -358,7 +359,6 @@ def worker():
         # left-click the validated stone
         message['command'] = 'select_stone'
         execute_command(window, message)
-        time.sleep(0.25)
 
         # the stone was not destroyed under reset_after seconds,
         # so it changes camera position and begins the loop again
@@ -377,17 +377,18 @@ def worker():
                                                   template, threshold, 100, helper_points)
             if len(stones_in_range) != 0:
                 found_next_metin = True
+
             time_while_found = 0
+
             while len(stones_in_range) == 0 and not found_next_metin:
 
                 # if there are 0 stones detected, pressQ
                 if debug_worker:
-                    
                     print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                           f"[No future stones detected!]")
+
                 message['command'] = 'pressQ'
                 execute_command(window, message)
-                time.sleep(0.4)
                 if debug_worker:
                     print(
                         f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
@@ -399,6 +400,7 @@ def worker():
 
                 if len(stones_in_range) != 0:
                     found_next_metin = True
+
                 if time_while_found > reset_after:
                     break
 
@@ -406,17 +408,17 @@ def worker():
             time_while_attacking_metin += time_while_found
 
             if time_while_attacking_metin % 5 == 0:
-                
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[Stone hit for {time_while_attacking_metin}s]")
+
             time_while_attacking_metin += 1
             time.sleep(1)
+
             if time_while_attacking_metin > reset_after:
 
                 is_dead, revive_button_x, revive_button_y = check_if_dead(window, revive_button)
                 # Check if dead then revive
                 if is_dead:
-                    # time.sleep(10)
                     message['command'] = 'press_left_click'
                     message['x_click_pos'] = revive_button_x + 15
                     message['y_click_pos'] = revive_button_y + 5
@@ -432,7 +434,6 @@ def worker():
                 execute_command(window, message)
 
                 break_loop = True
-                time.sleep(0.5)
                 break
         if break_loop:
             continue
@@ -441,12 +442,10 @@ def worker():
               f"[Stone destroyed]")
         metin_counter += 1
 
-        # time.sleep(0.5)
         # After stone was destroyed, write last message in chat
         if chat_spam_last_message and metin_counter % 5 == 0:
             message['command'] = 'chat_spam_last_message'
             execute_command(window, message)
-            time.sleep(0.5)
 
         if time.time() - start_spell_timer > skill_timer:  # After expiration time, spells are casted again
             if debug_worker:
@@ -455,7 +454,6 @@ def worker():
                       f"[casting spells]")
             message['command'] = 'casting_spells'
             execute_command(window, message)
-            time.sleep(0.5)
 
             start_spell_timer = time.time()
 
@@ -467,7 +465,6 @@ def worker():
                       f"[clearing mob]")
             message['command'] = 'clearing_mobs'
             execute_command(window, message)
-            time.sleep(0.5)
 
             start_mob_clean_timer = time.time()
             
@@ -481,7 +478,6 @@ def worker():
             # open biolog window
             message['command'] = 'pressY'
             execute_command(window, message)
-            time.sleep(0.5)
 
             # search send_item and press
             try:
@@ -491,14 +487,12 @@ def worker():
                 message['biolog_send_item_x'] = biolog_send_item_x + window.left + 15
                 message['biolog_send_item_y'] = biolog_send_item_y + window.top + 15
                 execute_command(window, message)
-                time.sleep(0.2)
             except Exception as e:
                 
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[ERROR!: solve biolog] -> {e}")
                 message['command'] = 'pressY'
                 execute_command(window, message)
-                time.sleep(0.2)
 
             start_biolog_timer = time.time()
 
@@ -514,49 +508,6 @@ def worker():
                   f"[timer biolog: {time.time() - start_biolog_timer:.1f} / {biolog_timer} s]")
 
 
-def master(queue, lock, window_title):
-    try:
-        
-        print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
-              f"Master process started")
-        windows = pygetwindow.getWindowsWithTitle(window_title)
-        while True:
-            if not queue.empty():
-                message = queue.get()
-                
-                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}"
-                      f":{datetime.datetime.now().microsecond:02}]:"
-                      f"Executing command from worker {message['worker_id']}: {message['command']}")
-                execute_command(window=windows[message['worker_id']], message=message)
-                lock.release()
-                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}"
-                      f":{datetime.datetime.now().microsecond:02}]:"
-                      f"Executed command from worker {message['worker_id']}: {message['command']}")
-            else:
-                time.sleep(0.1)  # Sleep to prevent high CPU usage
-    except KeyboardInterrupt:
-        
-        print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
-              f"Stopping all processes.")
-
 
 if __name__ == '__main__':
-    command_queue = Queue(maxsize=100)  # Set an appropriate maxsize
-    lock = Lock()
-    num_workers = 1
-    window_title = "Zenaris"
-    windows = gw.getWindowsWithTitle(window_title)
-    num_windows = len(windows)
-
-    if num_windows < num_workers:
-        print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}]: Not enough game windows open")
-        raise SystemExit
-    try:
-        p = Process(target=worker, args=())
-        p.start()
-        p.join()
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    finally:
-        p.join()
+    worker()
