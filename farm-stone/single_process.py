@@ -297,6 +297,7 @@ def worker():
     metin_counter = 0
     template = cv.imread("resources/template_hwangyeon.png", cv.IMREAD_GRAYSCALE)
     template_stone_check = cv.imread("resources/template_stone_hwangyeon.png", cv.IMREAD_GRAYSCALE)
+    search_counter = 0
 
 
     skill_timer = 50 * 60
@@ -350,6 +351,10 @@ def worker():
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[No stones detected!]")
             message['command'] = 'pressQ'
+            search_counter += 1
+            if search_counter >= 10:
+                search_counter = 0
+                message['command'] = 'reset'
             execute_command(window, message)
 
             if debug_worker:
