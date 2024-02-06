@@ -6,7 +6,6 @@ import cv2 as cv
 import numpy as np
 import pydirectinput
 import pygetwindow
-import pygetwindow as gw
 from PIL import ImageGrab
 
 
@@ -181,8 +180,32 @@ def execute_command(window, message):
         # TODO: de modificat resetul in a se teleporta din noua in zona specifica
         #  aceasta abordare nu functioneaza pentru ca caracterul, chiar daca este blocat,
         #  doar misca camera in speranta de a apasa alta piatra metin pentru a incerca sa se deblocheze.
-        pydirectinput.press('q', presses=10)
-        time.sleep(0.25 * 10)
+
+        template_next_button = cv.imread('resources/template_next_button.png', cv.IMREAD_GRAYSCALE)
+        template_hwangyeon_teleport_name = cv.imread('resources/hwangyeon_teleport_name.png', cv.IMREAD_GRAYSCALE)
+        template_center_zone_teleport = cv.imread("resources/center_zone.png", cv.IMREAD_GRAYSCALE)
+
+        # press teleport ring
+        pydirectinput.keyDown('alt')
+        pydirectinput.press('1')
+        pydirectinput.keyUp('alt')
+
+        # press next 2 times for last page
+        for _ in range(2):
+            x_last_page, y_last_page = search_template_in_window(window, template_next_button)
+
+            pydirectinput.leftClick(x_last_page, y_last_page)
+            time.sleep(0.1)
+
+        # press hwangyeon
+        x_hwangyeon, y_hwangyeong = search_template_in_window(window, template_hwangyeon_teleport_name)
+        pydirectinput.leftClick(x_hwangyeon, y_hwangyeong)
+        time.sleep(0.1)
+
+        # press center
+        x_center, y_center = search_template_in_window(window, template_center_zone_teleport)
+        pydirectinput.leftClick(x_center, y_center)
+        time.sleep(1)
     elif message['command'] == 'chat_spam_last_message':
         time.sleep(0.1)
         pydirectinput.press('enter')
@@ -243,12 +266,16 @@ def apply_color_filter(img):
     return res
 
 
-def search_biolog_send_item(window, frame, biolog_send_item_template):
-    result = cv.matchTemplate(frame, biolog_send_item_template, cv.TM_CCOEFF_NORMED)
+def search_template_in_window(window, template):
+
+    frame = apply_color_filter(get_image(window))
+    template = apply_color_filter(template)
+
+    result = cv.matchTemplate(frame, template, cv.TM_CCOEFF_NORMED)
 
     loc = np.where(result >= 0.9)
 
-    return loc[::-1][0][0], loc[::-1][1][0]
+    return loc[::-1][0][0] + window.left, loc[::-1][1][0] + window.top
 
 
 def check_if_dead(window, revive_button):
@@ -270,6 +297,7 @@ def worker():
     metin_counter = 0
     template = cv.imread("resources/template_hwangyeon.png", cv.IMREAD_GRAYSCALE)
     template_stone_check = cv.imread("resources/template_stone_hwangyeon.png", cv.IMREAD_GRAYSCALE)
+
 
     skill_timer = 50 * 60
     clear_mobs_timer = 99999
@@ -481,11 +509,11 @@ def worker():
 
             # search send_item and press
             try:
-                biolog_send_item_x, biolog_send_item_y = search_biolog_send_item(window, get_image(window),
-                                                                                 biolog_send_item_template)
+                biolog_send_item_x, biolog_send_item_y = search_template_in_window(window, get_image(window),
+                                                                                   biolog_send_item_template)
                 message['command'] = 'press_send_item'
-                message['biolog_send_item_x'] = biolog_send_item_x + window.left + 15
-                message['biolog_send_item_y'] = biolog_send_item_y + window.top + 15
+                message['biolog_send_item_x'] = biolog_send_item_x + 15
+                message['biolog_send_item_y'] = biolog_send_item_y + 15
                 execute_command(window, message)
             except Exception as e:
                 
