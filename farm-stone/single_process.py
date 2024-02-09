@@ -74,7 +74,7 @@ def get_stone_position_by_distance(window, frame, x_center, y_center, template, 
                 cv.circle(img=frame, center=(x_center, y_center),
                           radius=10, color=color, thickness=2)
         except Exception as e:
-            
+
             print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                   f"Open window -> {e}")
 
@@ -125,7 +125,7 @@ def get_stones_in_range(window, frame, x_center, y_center, template, threshold, 
                 cv.circle(img=frame, center=(x_center, y_center),
                           radius=10, color=color, thickness=2)
         except Exception as e:
-            
+
             print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                   f"Open window -> {e}")
 
@@ -144,7 +144,7 @@ def check_selected_metin(window, x_center, template_stone_check):
         return np.any(result > 0.9)
 
     except Exception as e:
-        
+
         print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
               f"Open game window -> {e}")
         return False
@@ -165,6 +165,7 @@ def execute_command(window, message):
         pydirectinput.press('esc')
         time.sleep(0.5)
     elif message['command'] == 'press_right_click':
+        time.sleep(1)
         pydirectinput.moveTo(window.left + message['x_click_pos'], window.top + message['y_click_pos'])
         pydirectinput.rightClick()
         time.sleep(0.2)
@@ -177,35 +178,37 @@ def execute_command(window, message):
         pydirectinput.press('q', presses=6)
         time.sleep(0.5)
     elif message['command'] == 'reset':
-        # TODO: de modificat resetul in a se teleporta din noua in zona specifica
-        #  aceasta abordare nu functioneaza pentru ca caracterul, chiar daca este blocat,
-        #  doar misca camera in speranta de a apasa alta piatra metin pentru a incerca sa se deblocheze.
+        try:
+            template_next_button = cv.imread('resources/template_next_button.png', cv.IMREAD_GRAYSCALE)
+            template_hwangyeon_teleport_name = cv.imread('resources/hwangyeon_teleport_name.png', cv.IMREAD_GRAYSCALE)
+            template_center_zone_teleport = cv.imread("resources/center_zone.png", cv.IMREAD_GRAYSCALE)
 
-        template_next_button = cv.imread('resources/template_next_button.png', cv.IMREAD_GRAYSCALE)
-        template_hwangyeon_teleport_name = cv.imread('resources/hwangyeon_teleport_name.png', cv.IMREAD_GRAYSCALE)
-        template_center_zone_teleport = cv.imread("resources/center_zone.png", cv.IMREAD_GRAYSCALE)
+            # press teleport ring
+            pydirectinput.keyDown('alt')
+            pydirectinput.press('1')
+            pydirectinput.keyUp('alt')
 
-        # press teleport ring
-        pydirectinput.keyDown('alt')
-        pydirectinput.press('1')
-        pydirectinput.keyUp('alt')
+            # press next 2 times for last page
+            for _ in range(2):
+                x_last_page, y_last_page = search_template_in_window(window, template_next_button)
 
-        # press next 2 times for last page
-        for _ in range(2):
-            x_last_page, y_last_page = search_template_in_window(window, template_next_button)
+                pydirectinput.leftClick(x_last_page, y_last_page)
+                time.sleep(0.2)
 
-            pydirectinput.leftClick(x_last_page, y_last_page)
-            time.sleep(0.1)
+            # press hwangyeon
+            x_hwangyeon, y_hwangyeong = search_template_in_window(window, template_hwangyeon_teleport_name)
+            pydirectinput.leftClick(x_hwangyeon, y_hwangyeong)
+            time.sleep(0.2)
 
-        # press hwangyeon
-        x_hwangyeon, y_hwangyeong = search_template_in_window(window, template_hwangyeon_teleport_name)
-        pydirectinput.leftClick(x_hwangyeon, y_hwangyeong)
-        time.sleep(0.1)
+            # press center
+            x_center, y_center = search_template_in_window(window, template_center_zone_teleport)
+            pydirectinput.leftClick(x_center, y_center)
+            time.sleep(1)
+        except:
+            print("ERROR AT TEMPLATE MATCHING TELEPORT")
+            time.sleep(2)
+            pydirectinput.press('esc')
 
-        # press center
-        x_center, y_center = search_template_in_window(window, template_center_zone_teleport)
-        pydirectinput.leftClick(x_center, y_center)
-        time.sleep(1)
     elif message['command'] == 'chat_spam_last_message':
         time.sleep(0.1)
         pydirectinput.press('enter')
@@ -282,7 +285,7 @@ def check_if_dead(window, revive_button):
     frame = get_image(window)
 
     result = cv.matchTemplate(frame, revive_button, cv.TM_CCOEFF_NORMED)
-    
+
     if np.any(result > 0.5):
         loc = np.where(result >= 0.5)
         return True, loc[::-1][0][0], loc[::-1][1][0]
@@ -332,7 +335,7 @@ def worker():
         # Check if any previous stones are selected
         if check_selected_metin(window, x_center, template_stone_check):
             if debug_worker:
-                
+
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[Unselect stone]")
 
@@ -345,16 +348,18 @@ def worker():
                                                          x_center, y_center,
                                                          template, threshold, helper_points)
 
-        # if there are 0 stones detected, pressQ and reset loop
+        # if there are 0 stones detected reset
         if len(stones_in_range) == 0:
             if debug_worker:
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[No stones detected!]")
             message['command'] = 'pressQ'
+
             search_counter += 1
             if search_counter >= 10:
                 search_counter = 0
                 message['command'] = 'reset'
+
             execute_command(window, message)
 
             if debug_worker:
@@ -482,7 +487,7 @@ def worker():
 
         if time.time() - start_spell_timer > skill_timer:  # After expiration time, spells are casted again
             if debug_worker:
-                
+
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[casting spells]")
             message['command'] = 'casting_spells'
@@ -491,20 +496,20 @@ def worker():
             start_spell_timer = time.time()
 
         # once clear_mobs_timer seconds: cape then clear mobs for 10 second
-        if time.time() - start_mob_clean_timer > clear_mobs_timer:  
+        if time.time() - start_mob_clean_timer > clear_mobs_timer:
             if debug_worker:
-                
+
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[clearing mob]")
             message['command'] = 'clearing_mobs'
             execute_command(window, message)
 
             start_mob_clean_timer = time.time()
-            
+
         # once biolog_timer open biolog window and press send_item
-        if make_biolog and time.time() - start_biolog_timer > biolog_timer:  
+        if make_biolog and time.time() - start_biolog_timer > biolog_timer:
             if debug_worker:
-                
+
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[solve biolog]")
 
@@ -521,7 +526,7 @@ def worker():
                 message['biolog_send_item_y'] = biolog_send_item_y + 15
                 execute_command(window, message)
             except Exception as e:
-                
+
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"[ERROR!: solve biolog] -> {e}")
                 message['command'] = 'pressY'
@@ -532,11 +537,11 @@ def worker():
         print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
               f"[timer skills: {time.time() - start_spell_timer:.1f} / {skill_timer} s]")
         if clear_mobs:
-            
+
             print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                   f"[timer mobi: {time.time() - start_mob_clean_timer:.1f} / {clear_mobs_timer} s]")
         if make_biolog:
-            
+
             print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                   f"[timer biolog: {time.time() - start_biolog_timer:.1f} / {biolog_timer} s]")
 

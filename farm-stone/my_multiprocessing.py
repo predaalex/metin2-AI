@@ -159,7 +159,7 @@ def execute_command(window, message):
     select_window(window)
     pydirectinput.press('z')
     if message['command'] == "pressQ":
-        pydirectinput.press('q', presses=2)
+        pydirectinput.press('q', presses=3)
     elif message['command'] == "press1":
         pydirectinput.press('1')
     elif message['command'] == "pressEsc":
@@ -175,15 +175,75 @@ def execute_command(window, message):
         pydirectinput.leftClick()
         pydirectinput.press('q', presses=6)
     elif message['command'] == 'reset':
-        # TODO: de modificat resetul in a se teleporta din noua in zona specifica
-        #  aceasta abordare nu functioneaza pentru ca caracterul, chiar daca este blocat,
-        #  doar misca camera in speranta de a apasa alta piatra metin pentru a incerca sa se deblocheze.
-        pydirectinput.press('z')
-        time.sleep(0.1)
-        # pydirectinput.press('esc')
-        # time.sleep(0.1)
-        pydirectinput.press('q', presses=10)
-        time.sleep(0.1)
+        if message['map'] == 'hwangyeon':
+            try:
+                template_next_button = cv.imread('resources/template_next_button.png', cv.IMREAD_GRAYSCALE)
+                template_hwangyeon_teleport_name = cv.imread(f'resources/hwangyeon_teleport_name.png', cv.IMREAD_GRAYSCALE)
+                template_center_zone_teleport = cv.imread("resources/center_zone.png", cv.IMREAD_GRAYSCALE)
+
+                # press teleport ring
+                pydirectinput.keyDown('alt')
+                pydirectinput.press('1')
+                pydirectinput.keyUp('alt')
+
+                # press next 2 times for last page
+                for _ in range(2):
+                    x_last_page, y_last_page = search_template_in_window(window, template_next_button)
+
+                    pydirectinput.leftClick(x_last_page, y_last_page)
+                    time.sleep(0.2)
+
+                # press map
+                x_hwangyeon, y_hwangyeong = search_template_in_window(window, template_hwangyeon_teleport_name)
+                pydirectinput.leftClick(x_hwangyeon, y_hwangyeong)
+                time.sleep(0.2)
+
+                # press center
+                x_center, y_center = search_template_in_window(window, template_center_zone_teleport)
+                pydirectinput.leftClick(x_center, y_center)
+                time.sleep(1)
+            except:
+                print(
+                    f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}"
+                    f":{datetime.datetime.now().microsecond:02}]:"
+                    f"Executed command from worker {message['worker_id']}: [ERROR AT TEMPLATE MATCHING TELEPORT]")
+                time.sleep(1)
+                pydirectinput.press('esc')
+        elif message['map'] == 'enchanted_forest':
+            try:
+                template_next_button = cv.imread('resources/template_next_button.png', cv.IMREAD_GRAYSCALE)
+                template_hwangyeon_teleport_name = cv.imread(f'resources/enchanted_forest_teleport_name.png', cv.IMREAD_GRAYSCALE)
+                # template_center_zone_teleport = cv.imread("resources/center_zone.png", cv.IMREAD_GRAYSCALE)
+
+                # press teleport ring
+                pydirectinput.keyDown('alt')
+                pydirectinput.press('1')
+                pydirectinput.keyUp('alt')
+
+                # press next 2 times for last page
+                for _ in range(2):
+                    x_last_page, y_last_page = search_template_in_window(window, template_next_button)
+
+                    pydirectinput.leftClick(x_last_page, y_last_page)
+                    time.sleep(0.2)
+
+                # press map
+                x_map, y_map = search_template_in_window(window, template_hwangyeon_teleport_name)
+                pydirectinput.leftClick(x_map, y_map)
+                time.sleep(0.2)
+
+                # press zone 2
+                pydirectinput.leftClick(x_map, y_map + 23)
+                time.sleep(1)
+            except:
+                print(
+                    f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}"
+                    f":{datetime.datetime.now().microsecond:02}]:"
+                    f"Executed command from worker {message['worker_id']}: [ERROR AT TEMPLATE MATCHING TELEPORT]")
+                time.sleep(1)
+                pydirectinput.press('esc')
+
+
     elif message['command'] == 'chat_spam_last_message':
         time.sleep(0.1)
         pydirectinput.press('enter')
@@ -236,12 +296,16 @@ def apply_color_filter(img):
     return res
 
 
-def search_biolog_send_item(window, frame, biolog_send_item_template):
-    result = cv.matchTemplate(frame, biolog_send_item_template, cv.TM_CCOEFF_NORMED)
+def search_template_in_window(window, template):
+
+    frame = apply_color_filter(get_image(window))
+    template = apply_color_filter(template)
+
+    result = cv.matchTemplate(frame, template, cv.TM_CCOEFF_NORMED)
 
     loc = np.where(result >= 0.9)
 
-    return loc[::-1][0][0], loc[::-1][1][0]
+    return loc[::-1][0][0] + window.left, loc[::-1][1][0] + window.top
 
 
 def check_if_dead(window, revive_button):
@@ -261,28 +325,32 @@ def worker(queue, lock, worker_id):
     biolog_send_item_template = cv.imread("resources/biolog_send_item.png", cv.IMREAD_GRAYSCALE)
     revive_button = cv.imread("resources/revive_button.png", cv.IMREAD_GRAYSCALE)
     metin_counter = 0
+    search_counter = 0
+
     if worker_id == 0:
-        template = cv.imread("resources/template_hwangyeon.png", cv.IMREAD_GRAYSCALE)
-        template_stone_check = cv.imread("resources/template_stone_hwangyeon.png", cv.IMREAD_GRAYSCALE)
+        map = "hwangyeon"
+        template = cv.imread(f"resources/template_{map}.png", cv.IMREAD_GRAYSCALE)
+        template_stone_check = cv.imread(f"resources/template_stone_{map}.png", cv.IMREAD_GRAYSCALE)
 
         skill_timer = 50 * 60
         clear_mobs_timer = 99999
-        reset_after = 15
+        reset_after = 10
         biolog_timer = 5 * 60 + 1
 
         helper_points = False
-        debug_worker = True
+        debug_worker = False
 
         chat_spam_last_message = False
         make_biolog = False
         clear_mobs = False
     else:
-        template = cv.imread("resources/template_hwangyeon.png", cv.IMREAD_GRAYSCALE)
-        template_stone_check = cv.imread("resources/template_stone_hwangyeon.png", cv.IMREAD_GRAYSCALE)
+        map = "enchanted_forest"
+        template = cv.imread(f"resources/template_{map}.png", cv.IMREAD_GRAYSCALE)
+        template_stone_check = cv.imread(f"resources/template_stone_{map}.png", cv.IMREAD_GRAYSCALE)
 
-        skill_timer = 20 * 60
+        skill_timer = 50 * 60
         clear_mobs_timer = 99999
-        reset_after = 35
+        reset_after = 25
         biolog_timer = 10 * 60 + 1
 
         helper_points = False
@@ -290,7 +358,7 @@ def worker(queue, lock, worker_id):
 
         chat_spam_last_message = False
         make_biolog = True
-        clear_mobs = False
+        clear_mobs = True
 
     template_stone_check = apply_color_filter(template_stone_check)
     template = apply_color_filter(template)
@@ -302,6 +370,7 @@ def worker(queue, lock, worker_id):
     while True:
         message = {
             'worker_id': worker_id,
+            'map': map
         }
 
         # Get the window's position and size
@@ -334,12 +403,26 @@ def worker(queue, lock, worker_id):
                 print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                       f"Worker {worker_id}: [No stones detected!]")
             message['command'] = 'pressQ'
+
+            search_counter += 1
+            if search_counter >= 10:
+                search_counter = 0
+                message['command'] = 'reset'
+
+            print(f"search_count = {search_counter}")
+
             lock.acquire()
             queue.put(message)
-            time.sleep(1)
-            if debug_worker:
-                print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
-                      f"Worker {worker_id}: [pressQ executed]")
+            if message['command'] == 'pressQ':
+                time.sleep(1)
+                if debug_worker:
+                    print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                          f"Worker {worker_id}: [pressQ executed]")
+            else:
+                time.sleep(6)
+                if debug_worker:
+                    print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
+                          f"Worker {worker_id}: [reset executed]")
             continue
 
         # Try to press all the stone in distances order and if couldn't pressQ any reset loop
@@ -403,19 +486,20 @@ def worker(queue, lock, worker_id):
             time_while_found = 0
             while len(stones_in_range) == 0 and not found_next_metin:
 
-                # if there are 0 stones detected, pressQ
+                # if there are 0 stones detected, reset
                 if debug_worker:
-                    
                     print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
                           f"Worker {worker_id}: [No future stones detected!]")
+
                 message['command'] = 'pressQ'
                 lock.acquire()
                 queue.put(message)
                 time.sleep(1)
+
                 if debug_worker:
                     print(
                         f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
-                        f"Worker {worker_id}: [pressQ executed]")
+                        f"Worker {worker_id}: [pressQ OR reset executed]")
                 stones_in_range = get_stones_in_range(window, apply_color_filter(get_image(window)),
                                                       x_center, y_center,
                                                       template, threshold, 100, helper_points)
@@ -459,7 +543,7 @@ def worker(queue, lock, worker_id):
                 queue.put(message)
 
                 break_loop = True
-                time.sleep(0.5)
+                time.sleep(6)
                 break
         if break_loop:
             continue
@@ -467,6 +551,7 @@ def worker(queue, lock, worker_id):
         print(f"[{datetime.datetime.now().hour:02}:{datetime.datetime.now().minute:02}:{datetime.datetime.now().second:02}]:"
               f"Worker {worker_id}: [Stone destroyed]")
         metin_counter += 1
+        search_counter = 0
 
         # message['command'] = 'pick_up'
         # lock.acquire()
@@ -520,8 +605,7 @@ def worker(queue, lock, worker_id):
 
             # search send_item and press
             try:
-                biolog_send_item_x, biolog_send_item_y = search_biolog_send_item(window, get_image(window),
-                                                                                 biolog_send_item_template)
+                biolog_send_item_x, biolog_send_item_y = search_template_in_window(window, biolog_send_item_template)
                 message['command'] = 'press_send_item'
                 message['biolog_send_item_x'] = biolog_send_item_x + window.left + 15
                 message['biolog_send_item_y'] = biolog_send_item_y + window.top + 15
@@ -580,7 +664,7 @@ def master(queue, lock, window_title):
 if __name__ == '__main__':
     command_queue = Queue(maxsize=100)  # Set an appropriate maxsize
     lock = Lock()
-    num_workers = 1
+    num_workers = 2
     window_title = "Zenaris"
     windows = gw.getWindowsWithTitle(window_title)
     num_windows = len(windows)
