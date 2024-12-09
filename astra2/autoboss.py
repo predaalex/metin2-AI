@@ -29,14 +29,20 @@ def search_template_in_window(window, template):
     return loc[::-1][0][0] + window.left, loc[::-1][1][0] + window.top
 
 
-def press_on_template(window, template):
+def press_on_template(window, template, jiggle=False):
     template_x, template_y = search_template_in_window(window, template)
 
     x_coord = template_x + (template.shape[1] // 2)
     y_coord = template_y + (template.shape[0] // 2)
 
-    pydirectinput.moveTo(x_coord, y_coord, duration=2)
-    pydirectinput.leftClick()
+    # if jiggle move mouse few pixels
+    if jiggle:
+        for i in range(4):
+            pydirectinput.moveTo(x_coord + i, y_coord)
+        pydirectinput.leftClick()
+        return
+    pydirectinput.leftClick(x_coord, y_coord)
+    time.sleep(0.05)
 
 
 if __name__ == '__main__':
@@ -51,22 +57,22 @@ if __name__ == '__main__':
 
     while True:
 
-        # check of any boss availability
-        if search_template_in_window(window, boss_activate_img) is not None:
-            window.activate()
+        try:
+            # check of any boss availability
+            if search_template_in_window(window, boss_activate_img) is not None:
+                # 1. stop auto-hunt
+                press_on_template(window, stop_autohunt_img)
 
-            # 1. stop auto-hunt
-            press_on_template(window, stop_autohunt_img)
+                # 2. select boss
+                press_on_template(window, boss_activate_img)
 
-            # 2. select boss
-            press_on_template(window, boss_activate_img)
+                # 3. call boss
+                press_on_template(window, call_button_img)
+                press_on_template(window, yes_button_img)
 
-            # 3. call boss
-            press_on_template(window, call_button_img)
-            press_on_template(window, yes_button_img)
-
-            # 4. start auto-hunt
-            time.sleep(0.5)
-            press_on_template(window, start_autohunt_img)
+                # 4. start auto-hunt
+                press_on_template(window, start_autohunt_img, jiggle=True)
+        except Exception as e:
+            print(e)
 
         time.sleep(5)
