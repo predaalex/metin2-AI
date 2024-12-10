@@ -4,6 +4,7 @@ import pygetwindow
 from PIL import ImageGrab
 import cv2 as cv
 import numpy as np
+import pyautogui
 
 pydirectinput.FAILSAFE = False
 
@@ -45,6 +46,32 @@ def press_on_template(window, template, jiggle=False):
     time.sleep(0.05)
 
 
+class PagesIterator:
+    def __init__(self, start=1, end=10):
+        self.start = start
+        self.end = end
+        self.current = start
+        self.forward = True  # Direction: True for forward, False for backward
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.forward:
+            if self.current < self.end:
+                self.current += 1
+            else:
+                self.forward = False
+                self.current -= 1
+        else:
+            if self.current > self.start:
+                self.current -= 1
+            else:
+                self.forward = True
+                self.current += 1
+        return self.current
+
+
 if __name__ == '__main__':
     boss_activate_img = cv.imread("resources/boss_can_activate.png", cv.IMREAD_GRAYSCALE)
     call_button_img = cv.imread("resources/call_button.png", cv.IMREAD_GRAYSCALE)
@@ -53,6 +80,7 @@ if __name__ == '__main__':
     yes_button_img = cv.imread("resources/yes_button.png", cv.IMREAD_GRAYSCALE)
 
     window = pygetwindow.getWindowsWithTitle('Astra2')[0]
+    iterator = PagesIterator(start=0, end=3)
     start_biolog_time = time.time()
 
     while True:
@@ -72,7 +100,23 @@ if __name__ == '__main__':
 
                 # 4. start auto-hunt
                 press_on_template(window, start_autohunt_img, jiggle=True)
+
+            # scroll to see other pages
+            else:
+                next(iterator)
+
+                # find dungeon window position
+                x_dungeon, y_dungeon = search_template_in_window(window, call_button_img)
+                pydirectinput.moveTo(x_dungeon, y_dungeon)
+                if iterator.forward:
+                    pyautogui.scroll(-1)
+                else:
+                    pyautogui.scroll(1)
+
+                print(iterator.current)
+
         except Exception as e:
+            press_on_template(window, start_autohunt_img, jiggle=True)
             print(e)
 
         time.sleep(5)
