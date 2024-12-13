@@ -3,3 +3,4 @@ pygetwindow
 Pillow
 opencv-contrib-python
 numpy
+PyAutoGUI

@@ -90,9 +90,9 @@ if __name__ == '__main__':
     iterator = PagesIterator(start=0, end=1)
     start_biolog_time = time.time()
 
-    while True:
+    try:
+        while True:
 
-        try:
             # check of any boss availability
             if search_template_in_window(window, boss_activate_img) is not None:
                 # 1. stop auto-hunt
@@ -120,9 +120,13 @@ if __name__ == '__main__':
                 else:
                     pyautogui.scroll(1)
 
-        except Exception as e:
-            press_on_template(window, start_autohunt_img, jiggle=True)
-            print(e)
+            time.sleep(5)
 
-        time.sleep(5)
-        
+    except KeyboardInterrupt:
+        print("\nKeyboard interrupt detected. Exiting...")
+        exit(0)
+    except Exception as e:
+        print(e)
+        print("\nException detected. Probably window wasn't detected properly.\nExiting...")
+        press_on_template(window, start_autohunt_img, jiggle=True)
+
