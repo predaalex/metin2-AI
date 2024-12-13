@@ -1,12 +1,12 @@
 import builtins
 import time
+from datetime import datetime
 import pydirectinput
 import pygetwindow
 from PIL import ImageGrab
 import cv2 as cv
 import numpy as np
 import pyautogui
-import datetime
 
 pydirectinput.FAILSAFE = False
 
@@ -54,7 +54,7 @@ def press_on_template(window, template, jiggle=False):
 
 
 class PagesIterator:
-    def __init__(self, start=1, end=10):
+    def __init__(self, start=1, end=5):
         self.start = start
         self.end = end
         self.current = start
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     yes_button_img = cv.imread("resources/yes_button.png", cv.IMREAD_GRAYSCALE)
 
     window = pygetwindow.getWindowsWithTitle('Astra2')[0]
-    iterator = PagesIterator(start=0, end=3)
+    iterator = PagesIterator(start=0, end=1)
     start_biolog_time = time.time()
 
     while True:
@@ -125,3 +125,4 @@ if __name__ == '__main__':
             print(e)
 
         time.sleep(5)
+        
