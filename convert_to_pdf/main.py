@@ -22,13 +22,14 @@ def print(*args, **kwargs):
 
 root_path = os.getcwd()
 
-dir = "documente_august"
+dir = "documente_martie"
 path_to_files_to_convert = os.path.join(root_path, dir)  # MODIFY THE CONVERSION FILE
 files_to_convert = [path for path in os.listdir(path_to_files_to_convert) if path.endswith(".xml") and "semnatura" not in path]
 print(f"There are {len(files_to_convert)} files to be converted")
 
 # Browser Setup
-EDGE_DRIVER_PATH = "edgedriver_win64/msedgedriver.exe"
+# EDGE_DRIVER_PATH = "edgedriver_win64/msedgedriver.exe"
+EDGE_DRIVER_PATH = "../rustypot/edge_driver/msedgedriver.exe"
 
 # Set up Edge options for silent printing
 options = Options()
