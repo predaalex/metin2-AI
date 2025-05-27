@@ -11,6 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.edge.service import Service
 from tqdm import tqdm
+import sys
 
 import time
 
@@ -20,9 +21,12 @@ def print(*args, **kwargs):
     builtins.print(f"[{timestamp}] ", *args, **kwargs)
 
 
+
+
 root_path = os.getcwd()
 
-dir = "documente_martie"
+# dir = "documente_test"
+dir = sys.argv[1]
 path_to_files_to_convert = os.path.join(root_path, dir)  # MODIFY THE CONVERSION FILE
 files_to_convert = [path for path in os.listdir(path_to_files_to_convert) if path.endswith(".xml") and "semnatura" not in path]
 print(f"There are {len(files_to_convert)} files to be converted")
@@ -30,9 +34,10 @@ print(f"There are {len(files_to_convert)} files to be converted")
 # Browser Setup
 # EDGE_DRIVER_PATH = "edgedriver_win64/msedgedriver.exe"
 EDGE_DRIVER_PATH = "../rustypot/edge_driver/msedgedriver.exe"
-
+EDGE_DRIVER_PATH = sys.argv[2]
 # Set up Edge options for silent printing
 options = Options()
+options.add_argument("--log-level=3")  # Suppresses INFO and WARNING logs
 options.add_argument('--kiosk-printing')  # Enable silent printing
 
 # Specify a default download directory for saving printed PDFs
@@ -115,7 +120,7 @@ try:
 
             driver.execute_script("window.print();")
 
-            time.sleep(3)
+            time.sleep(4)
             driver.back()
             # rename downloaded element
             initial_download_file_path = os.path.join(download_dir, "download.pdf")
@@ -123,7 +128,7 @@ try:
             os.rename(initial_download_file_path, new_download_file_path)
             progress_bar.update(1)
         except Exception as e:
-            print(f"ERROR handled for file {file_path}")
+            print(f"ERROR handled for file {file_path}. It will be retried")
             files_to_convert.append(file_path)
 
     print(f"Conversion finished!")
