@@ -47,9 +47,17 @@ if not os.path.exists(download_dir):
     os.mkdir(download_dir)
     print(f"directory has been created!\n{download_dir}")
 else:
-    shutil.rmtree(download_dir)
-    os.mkdir(download_dir)
-    print(f"NEW directory has been created!\n{download_dir}")
+    base_name_files_to_convert = [path[:-4] for path in files_to_convert]
+    files_already_converted = os.listdir(download_dir)
+    for file_already_converted_path in files_already_converted:
+        base_name_file_already_converted_path = file_already_converted_path[:-4]
+        if base_name_file_already_converted_path in base_name_files_to_convert:
+            print(f"{base_name_file_already_converted_path}.xml Already converted")
+            files_to_convert.remove(f"{base_name_file_already_converted_path}.xml")
+    print(f"There are {len(files_to_convert)} files left to be converted")
+    # shutil.rmtree(download_dir)
+    # os.mkdir(download_dir)
+    # print(f"NEW directory has been created!\n{download_dir}")
 
 preferences = {
     "download.default_directory": download_dir,
@@ -120,7 +128,7 @@ try:
 
             driver.execute_script("window.print();")
 
-            time.sleep(4)
+            time.sleep(3)
             driver.back()
             # rename downloaded element
             initial_download_file_path = os.path.join(download_dir, "download.pdf")
@@ -128,8 +136,11 @@ try:
             os.rename(initial_download_file_path, new_download_file_path)
             progress_bar.update(1)
         except Exception as e:
-            print(f"ERROR handled for file {file_path}. It will be retried")
+            # print(f"ERROR handled for file {file_path}. It will be retried")
             files_to_convert.append(file_path)
+            progress_bar.total += 1
+            progress_bar.update(1)
+            progress_bar.refresh()
 
     print(f"Conversion finished!")
 finally:
