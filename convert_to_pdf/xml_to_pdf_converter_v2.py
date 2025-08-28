@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-# anaf_uploadxml_v3.1.py
+# anaf_uploadxml_v3.2.py
 
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 import requests
 from bs4 import BeautifulSoup
+from http.client import RemoteDisconnected
 
 BASE = "https://www.anaf.ro"
 ENTRY = f"{BASE}/uploadxml/"
@@ -118,7 +119,6 @@ def convert_single_xml_to_pdf(xml_path: Path, out_pdf_path: Path, sleep_between:
         )
 
     # 3) Download the PDF (bound to the same session)
-    # polite pause; some gateways need a tick before the artifact is ready
     if sleep_between:
         time.sleep(sleep_between)
 
@@ -131,45 +131,90 @@ def convert_single_xml_to_pdf(xml_path: Path, out_pdf_path: Path, sleep_between:
 
     out_pdf_path.write_bytes(r2.content)
 
-def process_directory(xml_dir: Path, out_dir: Path) -> None:
-    """Process all non-_semnatura_ XMLs from xml_dir into PDFs in out_dir."""
+def process_directory(xml_dir: Path, out_dir: Path, retry_backoff: float = 2.0) -> None:
+    """Process all non-_semnatura_ XMLs from xml_dir into PDFs in out_dir.
+       Skips XMLs that already have a corresponding PDF in out_dir.
+       Retries failures once after the first pass (with backoff)."""
     if not xml_dir.is_dir():
         raise ValueError(f"Input path is not a directory: {xml_dir}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    xml_files = sorted(
+    # PDFs that already exist (by stem)
+    existing_pdf_stems = {p.stem.lower() for p in out_dir.glob("*.pdf")}
+
+    # Candidate XMLs (non-recursive)
+    all_xmls = sorted(
         [p for p in xml_dir.iterdir()
          if p.is_file() and p.suffix.lower() == ".xml" and "_semnatura_" not in p.name.lower()]
     )
 
+    # Filter out those already converted
+    xml_files = [p for p in all_xmls if p.stem.lower() not in existing_pdf_stems]
+
     if not xml_files:
-        print("No matching XML files found (skipping those with '_semnatura_' in the name).")
+        print("Nothing to do. Either no XMLs found (excluding *_semnatura_*) or all are already converted.")
         return
 
-    print(f"Found {len(xml_files)} XML files to convert.")
-    success, failed = 0, 0
+    print(f"Found {len(xml_files)} XML files to convert (skipping {len(all_xmls) - len(xml_files)} already done).")
+
+    # -------- First pass --------
+    first_failures: List[Path] = []
     for i, xml_file in enumerate(xml_files, 1):
         out_pdf = out_dir / (xml_file.stem + ".pdf")
         print(f"[{i}/{len(xml_files)}] {xml_file.name} → {out_pdf.name} ... ", end="", flush=True)
         try:
             convert_single_xml_to_pdf(xml_file, out_pdf)
             print("OK")
-            success += 1
+        except (requests.RequestException, RemoteDisconnected) as e:
+            print("FAIL")
+            print(f"      Reason: {e}")
+            first_failures.append(xml_file)
         except Exception as e:
             print("FAIL")
-            failed += 1
-            # show short reason, keep going
             print(f"      Reason: {e}")
+            first_failures.append(xml_file)
 
+    # -------- Retry pass on failures --------
+    retried = []
+    still_failed = []
+    if first_failures:
+        print(f"\nRetrying {len(first_failures)} failed file(s) after {retry_backoff:.1f}s ...")
+        time.sleep(retry_backoff)
+        for j, xml_file in enumerate(first_failures, 1):
+            out_pdf = out_dir / (xml_file.stem + ".pdf")
+            print(f"[retry {j}/{len(first_failures)}] {xml_file.name} → {out_pdf.name} ... ", end="", flush=True)
+            try:
+                convert_single_xml_to_pdf(xml_file, out_pdf)
+                print("OK")
+                retried.append(xml_file)
+            except (requests.RequestException, RemoteDisconnected) as e:
+                print("FAIL")
+                print(f"      Reason: {e}")
+                still_failed.append(xml_file)
+            except Exception as e:
+                print("FAIL")
+                print(f"      Reason: {e}")
+                still_failed.append(xml_file)
+
+    # -------- Summary --------
+    converted_count = len(xml_files) - len(first_failures) + len(retried)
     print("\nSummary:")
-    print(f"  Converted: {success}")
-    print(f"  Failed:    {failed}")
+    print(f"  Converted this run: {converted_count}")
+    print(f"  Already present PDFs skipped: {len(existing_pdf_stems)}")
+    print(f"  Retried successes: {len(retried)}")
+    print(f"  Still failed: {len(still_failed)}")
     print(f"  Output dir: {out_dir.resolve()}")
+
+    # Write a list of remaining failures for convenience
+    if still_failed:
+        fail_list = out_dir / "failed_conversions.txt"
+        fail_list.write_text("\n".join(str(p) for p in still_failed), encoding="utf-8")
+        print(f"  Wrote list of failed files to: {fail_list}")
 
 def main():
     if len(sys.argv) != 3:
         print("Usage:")
-        print("  python anaf_uploadxml_v3.1.py path/to/xmls/ path/to/pdfs/")
+        print("  python anaf_uploadxml_v3.2.py path/to/xmls/ path/to/pdfs/")
         sys.exit(1)
 
     xml_dir = Path(sys.argv[1]).expanduser().resolve()
