@@ -16,14 +16,16 @@ def get_image(window):
 
     # Convert BGR image to RGB
     screenshot = cv.cvtColor(screenshot, cv.COLOR_BGR2GRAY)
-    # screenshot = cv.resize(screenshot, (0, 0), fx=0.5, fy=0.5)
 
     return screenshot
 
 
-def seach_template_in_frame(frame, img_template, match_score=0.9):
+def seach_template_in_frame(frame, img_template, match_score=0.7):
     result = cv.matchTemplate(frame, img_template, cv.TM_CCOEFF_NORMED)
     loc = np.where(result >= match_score)
+    if len(loc[0]) == 0 or len(loc[1]) == 0:
+        return None
+
     return loc[::-1][0][0], loc[::-1][1][0]
 
 def get_windows(window_title):
@@ -35,7 +37,7 @@ def get_windows(window_title):
 
     return windows
 
-def search_and_press_template_in_frame(window, frame, img_template, match_score=0.9):
+def search_and_press_template_in_frame(window, frame, img_template, match_score=0.7):
     pos_x, pos_y = seach_template_in_frame(frame, img_template, match_score)
 
     h, w = img_template.shape[:2]
