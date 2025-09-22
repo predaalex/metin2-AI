@@ -214,7 +214,7 @@ def process_directory(xml_dir: Path, out_dir: Path, retry_backoff: float = 2.0) 
 def main():
     if len(sys.argv) != 3:
         print("Usage:")
-        print("  python anaf_uploadxml_v3.2.py path/to/xmls/ path/to/pdfs/")
+        print("  python xml_to_pdf_converter_v2.py path/to/xmls/ path/to/pdfs/")
         sys.exit(1)
 
     xml_dir = Path(sys.argv[1]).expanduser().resolve()
