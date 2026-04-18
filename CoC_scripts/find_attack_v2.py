@@ -1,11 +1,13 @@
 import time
 import random
 import cv2 as cv
-import easyocr
 import pydirectinput
 import pygetwindow
 import numpy as np
-
+import base64
+import requests
+import json
+import re
 import opencv_utils as utils  # your helper module
 
 
@@ -92,79 +94,107 @@ def click_template(window,
             jitter_sleep(0.10, 0.25)
     return False
 
+def cv_image_to_base64(img):
+    # Encode image as PNG in memory
+    success, buffer = cv.imencode(".png", img)
+    if not success:
+        raise ValueError("Could not encode image")
 
-# =========================
-# OCR (your original method)
-# =========================
-
-def extract_text_from_image(image,
-                          crop_rect=(135, 0, 270, 250),
-                          scale=4,
-                          reader=None):
-    """
-    Crop the 3-line panel and OCR each band into ints.
-    Returns list of three ints [gold, elixir, dark elixir].
-    """
-    y1, x1, y2, x2 = crop_rect
-    roi = image[y1:y2, x1:x2]
-
-    # upscale
-    image = cv.resize(roi, None, fx=scale, fy=scale, interpolation=cv.INTER_CUBIC)
-
-    # denoise
-    image = cv.GaussianBlur(image, (5,5), 0)
-
-    # threshold + invert
-    _, bw = cv.threshold(image, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
-
-    # morph open
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3,3))
-    clean = cv.morphologyEx(bw, cv.MORPH_OPEN, kernel, iterations=1)
-    clean = cv.bitwise_not(clean)
-
-    # split into bands
-    h = clean.shape[0]
-    bands = [ clean[int(i*h/3):int((i+1)*h/3), :] for i in range(3) ]
-
-    nums = []
-    for band in bands:
-        txts = reader.readtext(band,
-                               detail=0,
-                               text_threshold=0.3,
-                               allowlist='0123456789')
-        joined = ''.join(txts)
-        digit_str = ''.join([c for c in joined if c.isdigit()])
-        if digit_str == "":
-            raise ValueError("OCR failed to read digits")
-        nums.append(int(digit_str))
-
-    return nums
+    # Convert to base64 string
+    return base64.b64encode(buffer).decode("utf-8")
 
 
-def extract_resources(image, reader):
-    gold, elix, dark = extract_text_from_image(image, reader=reader)
-    return {"gold": gold, "elixir": elix, "dark elixir": dark}
+def parse_number(s: str) -> int:
+    cleaned = re.sub(r"[^\d]", "", str(s))
+    if not cleaned:
+        raise ValueError(f"Invalid number: {s}")
+    return int(cleaned)
 
+def extract_resources_from_raw_response(raw_response: str) -> dict:
+    # Step 1: extract JSON object (even if model added text around it)
+    match = re.search(r"\{.*?\}", raw_response, re.DOTALL)
+    if not match:
+        raise ValueError(f"No JSON found in response: {raw_response}")
 
-def print_resources(numbers):
-    width = len(f"{max(numbers.values()):,}")
-    for resource, amount in numbers.items():
-        print(f"{resource.title():<12}: {amount:>{width},}")
+    json_str = match.group(0)
 
+    # Step 2: parse JSON
+    try:
+        data = json.loads(json_str)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON from model: {json_str}") from e
+
+    # Step 3: validate keys
+    required_keys = ["gold", "elixir", "dark_elixir"]
+    for key in required_keys:
+        if key not in data:
+            raise ValueError(f"Missing key '{key}' in response: {data}")
+
+    # Step 4: normalize + convert to int
+    parsed = {
+        "gold": parse_number(data["gold"]),
+        "elixir": parse_number(data["elixir"]),
+        "dark_elixir": parse_number(data["dark_elixir"]),
+    }
+
+    return parsed
+
+def extract_resources(window):
+    url = "http://localhost:11434/api/generate"
+    image = utils.get_image(window)
+    image = image[110:300, 0:240]
+    image_base64 = cv_image_to_base64(image)
+
+    prompt = """
+You are reading an image that contains exactly 3 resource values, one per line.
+
+Extract the 3 numbers in top-to-bottom order.
+
+Rules:
+- Return valid JSON only.
+- Do not include markdown.
+- Do not include explanations.
+- Preserve the digits exactly as seen.
+- Keep spaces inside the numbers if they appear in the image.
+- Use this exact schema:
+
+{"gold":"...", "elixir":"...", "dark_elixir":"..."}
+"""
+
+    payload = {
+        "model": "gemma4:e4b",
+        "prompt": prompt,
+        "images": [image_base64],
+        "stream": False
+    }
+
+    raw_response = requests.post(url, json=payload).json()["response"]
+    print("Raw model response:", raw_response)
+
+    data = extract_resources_from_raw_response(raw_response)
+    print("Extracted model response:", data)
+    return data
 
 # =========================
 # Flow
 # =========================
 
-def go_to_search(window, attack_btn, find_match_btn) -> bool:
+def go_to_search(window, attack_btn, attack_btn2, find_match_btn) -> bool:
     print("Entering search mode…")
     if not click_template(window, attack_btn):
         print("Could not click Attack button.")
         return False
+
     jitter_sleep(0.8, 1.6)
     if not click_template(window, find_match_btn):
         print("Could not click Find Match button.")
         return False
+
+    jitter_sleep(0.8, 1.6)
+    if not click_template(window, attack_btn2):
+        print("Could not click Attack2 button.")
+        return False
+
     return True
 
 
@@ -194,16 +224,13 @@ def try_next_base(window, next_btn) -> bool:
         jitter_sleep(0.7, 1.2)
     return ok
 
-
 # =========================
 # Main
 # =========================
 
 def main():
-    # Init OCR
-    reader = easyocr.Reader(['en'], gpu=True)
-
-    attack_button_template = cv.imread("resources/attack_button.png", cv.IMREAD_GRAYSCALE)
+    attack_button_template = cv.imread("resources/attack_battle_button.png", cv.IMREAD_GRAYSCALE)
+    attack2_button_template = cv.imread("resources/attack!_button.png", cv.IMREAD_GRAYSCALE)
     find_match_button_template = cv.imread("resources/find_match_button.png", cv.IMREAD_GRAYSCALE)
     next_base_button_template = cv.imread("resources/next_base_button.png", cv.IMREAD_GRAYSCALE)
     end_attack_button_template = cv.imread("resources/end_battle_button.png", cv.IMREAD_GRAYSCALE)
@@ -216,10 +243,10 @@ def main():
     window.activate()
     jitter_sleep(0.3, 0.6)
 
-    if not go_to_search(window, attack_button_template, find_match_button_template):
+    if not go_to_search(window, attack_button_template, attack2_button_template, find_match_button_template):
         return
 
-    target = {"gold": 500_000, "elixir": 900_000, "dark elixir": 1_000}
+    target = {"gold": 1_000_000, "elixir": 1_000_000, "dark_elixir": 10_000}
 
     while True:
         if not wait_for_base(window, next_base_button_template, timeout=25.0):
@@ -230,19 +257,16 @@ def main():
 
         print("Reading resources…")
         try:
-            image = utils.get_image(window)
-            resources = extract_resources(image, reader)
+            resources = extract_resources(window)
         except Exception as e:
             print(f"OCR error: {e}; skipping base.")
             if not try_next_base(window, next_base_button_template):
                 break
             continue
 
-        print_resources(resources)
-
         if ((resources["gold"] >= target["gold"]) and
             (resources["elixir"] >= target["elixir"])) and \
-                (resources["dark elixir"] >= target["dark elixir"]):
+                (resources["dark_elixir"] >= target["dark_elixir"]):
             print("BASE FOUND ✅")
             break
         else:
