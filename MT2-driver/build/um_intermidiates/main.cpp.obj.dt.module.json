@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "C:\\Users\\allex\\Desktop\\git_repos\\MT2-driver\\build\\um_intermidiates\\main.obj",
+            "outputs": [
+                "C:\\Users\\allex\\Desktop\\git_repos\\MT2-driver\\build\\um_intermidiates\\main.cpp.obj.dt.module.json",
+                "C:\\Users\\allex\\Desktop\\git_repos\\MT2-driver\\build\\um_intermidiates\\main.cpp.obj.dt.d.json"
+            ],
+            "requires": []
+        }
+    ]
+}

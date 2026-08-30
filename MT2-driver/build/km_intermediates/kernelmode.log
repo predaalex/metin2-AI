@@ -1,0 +1,29 @@
+﻿  Building 'kernelmode' with toolset 'WindowsKernelModeDriver10.0' and the 'Universal' target platform.
+C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Microsoft\VC\v180\Microsoft.CppBuild.targets(536,5): warning MSB8004: Intermediate Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Intermediate Directory.
+C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Microsoft\VC\v180\Microsoft.CppBuild.targets(537,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+  Stamping C:\Users\allex\Desktop\git_repos\MT2-driver\build\km_intermediates\kernelmode.inf
+  Stamping [Version] section with DriverVer=08/30/2026,16.46.6.117
+  main.cpp
+  kernelmode.vcxproj -> C:\Users\allex\Desktop\git_repos\MT2-driver\build\kernelmode.sys
+  Done Adding Additional Store
+  Successfully signed: C:\Users\allex\Desktop\git_repos\MT2-driver\build\kernelmode.sys
+  
+  Driver is 'Universal'.
+  ........................
+  Signability test complete.
+  
+  Errors:
+  None
+  
+  Warnings:
+  None
+  
+  Catalog generation complete.
+  C:\Users\allex\Desktop\git_repos\MT2-driver\build\kernelmode\kernelmode.cat
+  Set catalog attribute.
+  WdkVersion: 10.0.26100.0
+  Set catalog attribute.
+  WdkAssemblyVersion: 10.0.26100.6584
+  Done Adding Additional Store
+  Successfully signed: C:\Users\allex\Desktop\git_repos\MT2-driver\build\kernelmode\kernelmode.cat
+  

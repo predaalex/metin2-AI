@@ -1,0 +1,53 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\allex\\Desktop\\git_repos\\MT2-driver\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{4D1BE1CA-37EF-47D3-A521-B3C58C9114F5}|usermode\\usermode.vcxproj|C:\\Users\\allex\\Desktop\\git_repos\\MT2-driver\\usermode\\src\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{4D1BE1CA-37EF-47D3-A521-B3C58C9114F5}|usermode\\usermode.vcxproj|solutionrelative:usermode\\src\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ADB19F5E-50C4-1DDE-67F7-5E46D55D570D}|kernelmode\\kernelmode.vcxproj|C:\\Users\\allex\\Desktop\\git_repos\\MT2-driver\\kernelmode\\src\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{ADB19F5E-50C4-1DDE-67F7-5E46D55D570D}|kernelmode\\kernelmode.vcxproj|solutionrelative:kernelmode\\src\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "main.cpp",
+              "DocumentMoniker": "C:\\Users\\allex\\Desktop\\git_repos\\MT2-driver\\usermode\\src\\main.cpp",
+              "RelativeDocumentMoniker": "usermode\\src\\main.cpp",
+              "ToolTip": "C:\\Users\\allex\\Desktop\\git_repos\\MT2-driver\\usermode\\src\\main.cpp",
+              "RelativeToolTip": "usermode\\src\\main.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAJIAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-08-30T12:51:48.338Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "main.cpp",
+              "DocumentMoniker": "C:\\Users\\allex\\Desktop\\git_repos\\MT2-driver\\kernelmode\\src\\main.cpp",
+              "RelativeDocumentMoniker": "kernelmode\\src\\main.cpp",
+              "ToolTip": "C:\\Users\\allex\\Desktop\\git_repos\\MT2-driver\\kernelmode\\src\\main.cpp",
+              "RelativeToolTip": "kernelmode\\src\\main.cpp",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAABgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-08-30T07:35:49.779Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

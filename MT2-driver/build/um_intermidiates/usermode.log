@@ -1,0 +1,4 @@
+﻿C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Microsoft\VC\v180\Microsoft.CppBuild.targets(537,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+  main.cpp
+C:\Users\allex\Desktop\git_repos\MT2-driver\usermode\src\main.cpp(92,18): warning C4312: 'reinterpret_cast': conversion from 'const DWORD' to 'HANDLE' of greater size
+  usermode.vcxproj -> C:\Users\allex\Desktop\git_repos\MT2-driver\build\usermode.exe
